@@ -3,6 +3,7 @@ import LoginPage from './pages/LoginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import MapPage from './pages/MapPage.jsx';
+import HomePage from './pages/HomePage.jsx';
 import PrivateRoute from './components/PrivateRoute.jsx';
 import PWAInstall from './components/PWAInstall.jsx';
 
@@ -28,7 +29,15 @@ export default function App() {
           </PrivateRoute>
         }
       />
-      <Route path="/" element={<Navigate to="/dashboard" />} />
+      <Route
+        path="/home"
+        element={
+          <PrivateRoute>
+            <HomePage />
+          </PrivateRoute>
+        }
+      />
+      <Route path="/" element={<Navigate to="/home" />} />
     </Routes>
     <PWAInstall />
     </>

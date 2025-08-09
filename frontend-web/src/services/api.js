@@ -22,12 +22,31 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Response interceptor for error handling
 api.interceptors.response.use(
-  (response) => response.data,
+  (response) => {
+    console.log('✅ API Success:', response.config.method.toUpperCase(), response.config.url);
+    return response.data;
+  },
   (error) => {
-    if (error.response) return Promise.reject(error.response.data);
-    if (error.request) return Promise.reject({ message: 'Network error' });
-    return Promise.reject({ message: error.message });
+    console.error('❌ API Error:', {
+      method: error.config?.method?.toUpperCase(),
+      url: error.config?.url,
+      status: error.response?.status,
+      message: error.response?.data?.message || error.message,
+      fullError: error
+    });
+    
+    // Network error
+    if (!error.response) {
+      console.error('🔌 Network Error: Backend server may be down or unreachable');
+      console.error('🔍 Check if backend is running on http://localhost:3000');
+      return Promise.reject(new Error('Network error: Cannot connect to server'));
+    }
+    
+    // Server error
+    const message = error.response?.data?.message || error.message || 'Server error';
+    return Promise.reject(new Error(message));
   }
 );
 
