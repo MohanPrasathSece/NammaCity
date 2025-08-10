@@ -3,6 +3,10 @@ const cors = require('cors');
 require('dotenv').config();
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
+const serviceRoutes = require('./routes/serviceRoutes');
+const bookingRoutes = require('./routes/bookingRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
+const weatherRoutes = require('./routes/weatherRoutes');
 const { errorHandler } = require('./middleware/errorMiddleware');
 
 const app = express();
@@ -18,6 +22,9 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Serve static files
+app.use('/images', express.static('public/images'));
+
 // Request logging
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
@@ -25,7 +32,15 @@ app.use((req, res, next) => {
 });
 
 // Routes
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/services', require('./routes/serviceRoutes'));
+app.use('/api/bookings', require('./routes/bookingRoutes'));
+app.use('/api/reviews', require('./routes/reviewRoutes'));
+app.use('/api/weather', require('./routes/weatherRoutes'));
+app.use('/api/journals', require('./routes/journalRoutes'));
+app.use('/api/bookmarks', require('./routes/bookmarkRoutes'));
+app.use('/api/map', require('./routes/mapRoutes'));
+app.use('/api/user', require('./routes/userRoutes'));
 
 // Test route
 app.get('/api', (req, res) => {

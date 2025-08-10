@@ -57,10 +57,42 @@ export const authAPI = {
   logout: () => api.post('/auth/logout'),
 };
 
-export const servicesAPI = {
-  getServices: (location) => api.get('/services', { params: { location } }),
-  getServiceById: (id) => api.get(`/services/${id}`),
-  searchServices: (query) => api.get('/services/search', { params: { q: query } }),
+// Service endpoints
+export const serviceAPI = {
+  getAll: (params = {}) => api.get('/services', { params }),
+  getById: (id) => api.get(`/services/${id}`),
+  getByCategory: (category, params = {}) => api.get(`/services/category/${category}`, { params }),
+  getNearby: (lat, lng, radius = 5000) => api.get('/services/nearby', { params: { lat, lng, radius } }),
+  search: (params = {}) => api.get('/services/search', { params }),
+  create: (data) => api.post('/services', data),
+  update: (id, data) => api.put(`/services/${id}`, data),
+  delete: (id) => api.delete(`/services/${id}`)
+};
+
+// Booking endpoints
+export const bookingAPI = {
+  create: (data) => api.post('/bookings', data),
+  getMyBookings: (params = {}) => api.get('/bookings/my-bookings', { params }),
+  getById: (id) => api.get(`/bookings/${id}`),
+  cancel: (id, reason) => api.put(`/bookings/${id}/cancel`, { reason }),
+  getServiceBookings: (serviceId, params = {}) => api.get(`/bookings/service/${serviceId}`, { params }),
+  updateStatus: (id, status) => api.put(`/bookings/${id}/status`, { status })
+};
+
+// Review endpoints
+export const reviewAPI = {
+  create: (data) => api.post('/reviews', data),
+  getServiceReviews: (serviceId, params = {}) => api.get(`/reviews/service/${serviceId}`, { params }),
+  getMyReviews: (params = {}) => api.get('/reviews/my-reviews', { params }),
+  update: (id, data) => api.put(`/reviews/${id}`, data),
+  delete: (id) => api.delete(`/reviews/${id}`),
+  markHelpful: (id) => api.post(`/reviews/${id}/helpful`)
+};
+
+// Weather endpoints
+export const weatherAPI = {
+  getCurrent: (lat, lng) => api.get('/weather/current', { params: { lat, lng } }),
+  getForecast: (days = 3) => api.get('/weather/forecast', { params: { days } })
 };
 
 export const chatAPI = {
@@ -68,11 +100,17 @@ export const chatAPI = {
   getChatHistory: () => api.get('/chat/history'),
 };
 
+export const bookmarkAPI = {
+  getMyBookmarks: () => api.get('/bookmarks/my'),
+  addBookmark: (serviceId) => api.post(`/bookmarks/${serviceId}`),
+  removeBookmark: (serviceId) => api.delete(`/bookmarks/${serviceId}`)
+};
+
 export const journalAPI = {
-  getEntries: () => api.get('/journal'),
-  createEntry: (entry) => api.post('/journal', entry),
-  updateEntry: (id, entry) => api.put(`/journal/${id}`, entry),
-  deleteEntry: (id) => api.delete(`/journal/${id}`),
+  getEntries: () => api.get('/journals/my'),
+  createEntry: (entry) => api.post('/journals', entry),
+  updateEntry: (id, entry) => api.put(`/journals/${id}`, entry),
+  deleteEntry: (id) => api.delete(`/journals/${id}`),
 };
 
 export const userAPI = {

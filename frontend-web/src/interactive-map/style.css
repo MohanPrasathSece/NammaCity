@@ -1,0 +1,56 @@
+/* Basic styles for the page */
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    font-family: Arial, sans-serif;
+    overflow: hidden; /* Prevent scrolling of the whole page */
+}
+
+/* The map container must have a defined height */
+#map {
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
+
+/* Styling for the turn-by-turn instructions panel */
+#instructions {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 300px;
+    max-height: 90%;
+    background-color: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    z-index: 2;
+    overflow-y: auto; /* Allow scrolling for long instructions */
+    display: none; /* Hidden by default, shown when a route is active */
+}
+
+/* Improve the default routing machine layout */
+.leaflet-routing-container {
+    background-color: transparent;
+    box-shadow: none;
+}
+
+.leaflet-routing-alternatives-container {
+    display: none; /* Hide alternative routes for a cleaner UI */
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 600px) {
+    #instructions {
+        width: 90%;
+        left: 5%;
+        right: 5%;
+        top: 10px;
+        max-height: 40%;
+    }
+}

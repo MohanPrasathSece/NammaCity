@@ -1,0 +1,7 @@
+.profile-page{padding:20px;color:#fff;text-align:center}
+.profile-card{background:#222;border-radius:12px;padding:16px;margin-bottom:20px}
+.avatar{width:100px;height:100px;border-radius:50%;object-fit:cover;margin-bottom:8px}
+.logout-btn{margin-top:8px;background:#ff6b6b;border:none;border-radius:8px;padding:8px 14px;color:#fff;font-weight:bold}
+.profile-sections{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.section-link{background:#2a2a2a;padding:10px;border-radius:10px;cursor:pointer}
+.stats{background:#222;border-radius:12px;padding:12px}
