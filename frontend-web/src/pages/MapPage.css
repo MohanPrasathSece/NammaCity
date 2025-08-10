@@ -328,16 +328,93 @@
 }
 
 .review-button {
-    background-color: #e9ecef;
-    color: #495057;
+    background-color: #f0f0f0;
+    color: #333;
 }
 
 .review-button:hover {
     background-color: #ced4da;
 }
 
+.google-maps-button {
+    background-color: #4285F4; /* Google's blue */
+    color: white;
+    margin-top: 5px;
+    width: 100%;
+}
 
-/* Responsive design for smaller screens */
+/* --- Turn-by-Turn Navigation Panel --- */
+.turn-by-turn-panel {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: #fff;
+    color: #333;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    padding: 20px;
+    z-index: 1001;
+    box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    transition: transform 0.3s ease;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.panel-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.turn-by-turn-content {
+    text-align: center;
+}
+
+.current-instruction {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--color-primary);
+}
+
+
+
+.route-summary {
+    display: flex;
+    justify-content: space-around;
+    font-size: 1rem;
+    font-weight: 500;
+    border-top: 1px solid #eee;
+    padding-top: 15px;
+}
+
+.exit-nav-button {
+    background: #f0f0f0;
+    color: #333;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    font-size: 1.5rem;
+    line-height: 36px;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.exit-nav-button:hover {
+    background-color: #e0e0e0;
+}
+
+/* Responsive adjustments for smaller screens */
 @media (max-width: 768px) {
     .instructions-panel {
         width: 90%;

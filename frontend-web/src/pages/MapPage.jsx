@@ -31,28 +31,50 @@ const icons = {
 // --- ROUTING COMPONENT ---
 const RoutingMachine = ({ start, end, setInstructions }) => {
     const map = useMap();
+    const routingControlRef = React.useRef(null);
+
     useEffect(() => {
-        if (!map || !start || !end) return;
-        const routingControl = L.Routing.control({
-            waypoints: [L.latLng(start[0], start[1]), L.latLng(end[0], end[1])],
-            routeWhileDragging: true,
-            router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' }),
-            show: false,
-            addWaypoints: false,
-            lineOptions: { styles: [{ color: '#FF6700', opacity: 0.9, weight: 7 }] },
-            createMarker: () => null,
-        }).addTo(map);
-        routingControl.on('routesfound', (e) => e.routes.length > 0 && setInstructions(e.routes[0]));
-        return () => map.removeControl(routingControl);
-    }, [map, start, end, setInstructions]);
+        if (!map) return;
+
+        if (!routingControlRef.current) {
+            const instance = L.Routing.control({
+                waypoints: [L.latLng(start[0], start[1]), L.latLng(end[0], end[1])],
+                routeWhileDragging: false, // Disable to prevent conflicts with live tracking
+                router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' }),
+                show: false,
+                addWaypoints: false,
+                lineOptions: { styles: [{ color: '#FF6700', opacity: 0.9, weight: 7 }] },
+                createMarker: () => null,
+            }).addTo(map);
+            instance.on('routesfound', (e) => e.routes.length > 0 && setInstructions(e.routes[0]));
+            routingControlRef.current = instance;
+        }
+
+        return () => {
+            if (routingControlRef.current) {
+                map.removeControl(routingControlRef.current);
+                routingControlRef.current = null;
+            }
+        };
+    }, [map]);
+
+    useEffect(() => {
+        if (routingControlRef.current) {
+            routingControlRef.current.setWaypoints([L.latLng(start[0], start[1]), L.latLng(end[0], end[1])]);
+        }
+    }, [start, end]);
+
     return null;
 };
 
 // --- MAP PAGE COMPONENT ---
 const MapPage = () => {
     const [userLocation, setUserLocation] = useState(null);
+        const [selectedLocation, setSelectedLocation] = useState(null);
     const [destination, setDestination] = useState(null);
     const [routeInfo, setRouteInfo] = useState(null);
+    const [currentInstructionIndex, setCurrentInstructionIndex] = useState(0);
+    const mapRef = React.useRef(null);
     const [activeCategory, setActiveCategory] = useState('all');
     const [allLocations, setAllLocations] = useState([]);
     const [error, setError] = useState(null);
@@ -81,6 +103,22 @@ const MapPage = () => {
 
     // --- GEOLOCATION ---
     useEffect(() => {
+                // Center map on user during navigation
+                if (destination && routeInfo && mapRef.current) {
+            mapRef.current.panTo(userLocation);
+
+            const nextManeuver = routeInfo.instructions[currentInstructionIndex];
+            if (nextManeuver) {
+                const userLatLng = L.latLng(userLocation);
+                const maneuverLatLng = L.latLng(nextManeuver.latLng.lat, nextManeuver.latLng.lng);
+                const distanceToManeuver = userLatLng.distanceTo(maneuverLatLng);
+
+                if (distanceToManeuver < 20) { // 20 meters threshold
+                    setCurrentInstructionIndex(prev => prev + 1);
+                }
+            }
+        }
+
         const watchId = navigator.geolocation.watchPosition(
             (pos) => setUserLocation([pos.coords.latitude, pos.coords.longitude]),
             (err) => {
@@ -93,63 +131,105 @@ const MapPage = () => {
         return () => navigator.geolocation.clearWatch(watchId);
     }, []);
 
-    const handleNavigateClick = (lat, lng) => {
-        setDestination([lat, lng]);
+        const handleNavigateClick = (loc) => {
+        setDestination(loc);
+        setSelectedLocation(null); // Close the popup
         setRouteInfo(null);
+        setCurrentInstructionIndex(0);
     };
 
-    const handleAddReviewClick = (id) => alert(`Review form for location ID: ${id}`);
-    const handleExitNavigation = () => setRouteInfo(null) && setDestination(null);
+        const handleAddReviewClick = (id) => alert(`Review form for location ID: ${id}`);
+
+    const handleOpenInGoogleMaps = (lat, lng) => {
+        const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+        window.open(url, '_blank');
+    };
+
+    const handleCategoryClick = (category) => {
+        setActiveCategory(category);
+        if (category === 'all') {
+            if (userLocation) mapRef.current.flyTo(userLocation, 15);
+            return;
+        }
+        const categoryLocations = allLocations.filter(loc => loc.category === category);
+        if (categoryLocations.length > 0) {
+            const bounds = L.latLngBounds(categoryLocations.map(loc => [loc.lat, loc.lng]));
+            mapRef.current.flyToBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+        }
+    };
+        const handleExitNavigation = () => {
+        setSelectedLocation(destination); // Re-open the popup
+        setDestination(null);
+        setRouteInfo(null);
+        setCurrentInstructionIndex(0);
+    };
 
     if (!userLocation) return <div className="loading-overlay">Detecting your location...</div>;
 
     return (
         <div className="map-page-container">
-            <div className="filter-bar">
-                <button onClick={() => setActiveCategory('all')} className={activeCategory === 'all' ? 'active' : ''}>All</button>
-                <button onClick={() => setActiveCategory('food')} className={activeCategory === 'food' ? 'active' : ''}>🍴 Food</button>
-                <button onClick={() => setActiveCategory('shelter')} className={activeCategory === 'shelter' ? 'active' : ''}>🛌 Stays</button>
-                <button onClick={() => setActiveCategory('restZone')} className={activeCategory === 'restZone' ? 'active' : ''}>🛋️ Zones</button>
-                <button onClick={() => setActiveCategory('restroom')} className={activeCategory === 'restroom' ? 'active' : ''}>🚻 Restrooms</button>
+                        <div className="filter-bar">
+                <button onClick={() => handleCategoryClick('all')} className={activeCategory === 'all' ? 'active' : ''}>All</button>
+                <button onClick={() => handleCategoryClick('food')} className={activeCategory === 'food' ? 'active' : ''}>🍴 Food</button>
+                <button onClick={() => handleCategoryClick('shelter')} className={activeCategory === 'shelter' ? 'active' : ''}>🛌 Stays</button>
+                <button onClick={() => handleCategoryClick('restZone')} className={activeCategory === 'restZone' ? 'active' : ''}>🛋️ Zones</button>
+                <button onClick={() => handleCategoryClick('restroom')} className={activeCategory === 'restroom' ? 'active' : ''}>🚻 Restrooms</button>
             </div>
 
-            <MapContainer center={userLocation} zoom={15} scrollWheelZoom={true} style={{ height: '100%', width: '100%', zIndex: 1 }}>
+            <MapContainer ref={mapRef} center={userLocation} zoom={15} scrollWheelZoom={true} style={{ height: '100%', width: '100%', zIndex: 1 }}>
                 <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                 {userLocation && <Marker position={userLocation} icon={icons.user}><Popup>Your current location</Popup></Marker>}
 
-                {filteredLocations.map(loc => (
-                    <Marker key={loc.id} position={[loc.lat, loc.lng]} icon={icons[loc.category]}>
-                        <Popup className="food-popup">
-                            <div className="popup-content">
-                                <img src={loc.photoUrl} alt={loc.name} className="popup-photo" />
-                                <div className="popup-header"><h3>{loc.name}</h3><span className={`price-tag ${loc.isFree ? 'free' : 'paid'}`}>{loc.isFree ? 'Free' : 'Paid'}</span></div>
-                                <p className="popup-description">{loc.description}</p>
-                                <div className="popup-info"><p><strong>Timings:</strong> {loc.timing}</p><p><strong>Open:</strong> {loc.activeDays}</p></div>
-                                <div className="popup-actions">
-                                    <button className="nav-button" onClick={() => handleNavigateClick(loc.lat, loc.lng)}>Get Directions</button>
-                                    <button className="review-button" onClick={() => handleAddReviewClick(loc.id)}>Add Review</button>
+                                {filteredLocations.map(loc => (
+                    <Marker 
+                        key={loc.id} 
+                        position={[loc.lat, loc.lng]} 
+                        icon={icons[loc.category]}
+                        eventHandlers={{
+                            click: () => {
+                                setSelectedLocation(loc);
+                            },
+                        }}>
+                                                {selectedLocation && selectedLocation.id === loc.id && (
+                            <Popup className="food-popup" onClose={() => setSelectedLocation(null)}>
+                                <div className="popup-content">
+                                    <img src={loc.photoUrl} alt={loc.name} className="popup-photo" />
+                                    <div className="popup-header"><h3>{loc.name}</h3><span className={`price-tag ${loc.isFree ? 'free' : 'paid'}`}>{loc.isFree ? 'Free' : 'Paid'}</span></div>
+                                    <p className="popup-description">{loc.description}</p>
+                                    <div className="popup-info"><p><strong>Timings:</strong> {loc.timing}</p><p><strong>Open:</strong> {loc.activeDays}</p></div>
+                                    <div className="popup-actions">
+                                        <button className="nav-button" onClick={() => handleNavigateClick(loc)}>Start</button>
+                                                                                <button className="review-button" onClick={() => handleAddReviewClick(loc.id)}>Add Review</button>
+                                        <button className="google-maps-button" onClick={() => handleOpenInGoogleMaps(loc.lat, loc.lng)}>View on Google Maps</button>
+                                    </div>
                                 </div>
-                            </div>
-                        </Popup>
+                            </Popup>
+                        )}
                     </Marker>
                 ))}
 
-                {userLocation && destination && <RoutingMachine start={userLocation} end={destination} setInstructions={setRouteInfo} />}
+                                {userLocation && destination && <RoutingMachine start={userLocation} end={[destination.lat, destination.lng]} setInstructions={setRouteInfo} />}
             </MapContainer>
 
-            <div id="instructions" className={`instructions-panel ${routeInfo ? 'visible' : ''}`}>
-                {routeInfo ? (
-                    <>
+                        {destination && routeInfo && (
+                <div className="turn-by-turn-panel">
+                    <div className="panel-header">
+                        <h3>{destination.name}</h3>
                         <button className="exit-nav-button" onClick={handleExitNavigation}>&times;</button>
-                        <h2>Navigation Route</h2>
+                    </div>
+                    <div className="turn-by-turn-content">
+                        {currentInstructionIndex < routeInfo.instructions.length ? (
+                            <p className="current-instruction">{routeInfo.instructions[currentInstructionIndex].text}</p>
+                        ) : (
+                            <p className="current-instruction">You have arrived at your destination.</p>
+                        )}
+                    </div>
+                    <div className="route-summary">
                         <p><strong>Distance:</strong> {(routeInfo.summary.totalDistance / 1000).toFixed(2)} km</p>
                         <p><strong>Time:</strong> {Math.round(routeInfo.summary.totalTime / 60)} min</p>
-                        <hr />
-                        <h3>Directions:</h3>
-                        <ol>{routeInfo.instructions.map((step, i) => <li key={i}>{step.text}</li>)}</ol>
-                    </>
-                ) : <p>Click a marker's "Get Directions" button for a route.</p>}
-            </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
