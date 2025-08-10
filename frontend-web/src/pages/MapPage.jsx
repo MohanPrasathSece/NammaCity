@@ -729,29 +729,11 @@ const MapPage = () => {
 
             {/* Recenter Button - Always visible */}
             <button
+                className={`recenter-btn ${isFollowingUser ? 'following' : ''}`}
                 onClick={handleRecenterMap}
-                style={{
-                    position: 'fixed',
-                    bottom: window.innerWidth < 768 ? '90px' : '100px', // Adjusted for nav bar
-                    right: '20px',
-                    backgroundColor: 'white',
-                    border: '2px solid #ddd',
-                    borderRadius: '50%',
-                    width: '50px',
-                    height: '50px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    fontSize: '20px',
-                    boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
-                    zIndex: 1000,
-                    transition: 'all 0.2s ease',
-                    color: isFollowingUser ? '#FF6700' : '#666'
-                }}
+
                 title={isNavigating ? "Recenter and follow navigation" : "Center on my location"}
             >
-                🎯
             </button>
 
             {/* Navigation UI - shows only when navigating */}

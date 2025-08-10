@@ -89,6 +89,61 @@
     background: #ced4da;
 }
 
+/* Recenter Button */
+.recenter-btn {
+    position: fixed;
+    bottom: 100px;
+    right: 20px;
+    background-color: white;
+    border: 1px solid #dbdbdb;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    transition: all 0.2s ease;
+}
+
+.recenter-btn:hover {
+    background-color: #f0f0f0;
+}
+
+.recenter-btn::before {
+    content: '';
+    width: 24px;
+    height: 24px;
+    border: 3px solid #666;
+    border-radius: 50%;
+    box-sizing: border-box;
+}
+
+.recenter-btn::after {
+    content: '';
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background-color: #666;
+    border-radius: 50%;
+}
+
+.recenter-btn.following::before {
+    border-color: #4285F4;
+}
+
+.recenter-btn.following::after {
+    background-color: #4285F4;
+}
+
+@media (max-width: 768px) {
+    .recenter-btn {
+        bottom: 90px;
+    }
+}
+
 /* Class to make the panel visible */
 .instructions-panel.visible {
     right: 10px;
