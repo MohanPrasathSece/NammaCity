@@ -31,6 +31,7 @@ const icons = {
 
 // --- NAVIGATION PERSISTENCE CONSTANTS ---
 const NAVIGATION_STORAGE_KEY = 'urbanaid_navigation_state';
+const LOCATION_STORAGE_KEY = 'urbanaid_last_location';
 const NAVIGATION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 // --- MAP PAGE COMPONENT ---
@@ -52,27 +53,91 @@ const MapPage = () => {
     const [isFollowingUser, setIsFollowingUser] = useState(false);
 
     useEffect(() => {
+        // Always try to get current precise location first
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
                     const { latitude, longitude } = position.coords;
-                    setUserLocation({ lat: latitude, lng: longitude });
+                    const currentLocation = { lat: latitude, lng: longitude };
+                    
+                    // Set the current location and save to cache
+                    setUserLocation(currentLocation);
+                    saveLastLocation(currentLocation);
+                    
                     if (mapRef.current) {
                         mapRef.current.flyTo([latitude, longitude], 15);
                     }
+                    console.log('🎯 Got current precise location');
                 },
                 (error) => {
-                    console.error("Error getting user location:", error);
-                    // Default to a fallback location if permission is denied or an error occurs
-                    setUserLocation({ lat: 11.0168, lng: 76.9558 }); // Coimbatore
+                    console.error("Error getting current location:", error);
+                    
+                    // Only use cached location as fallback if GPS fails
+                    const cachedLocation = getLastLocation();
+                    if (cachedLocation) {
+                        console.log('📍 Using cached location as fallback');
+                        setUserLocation(cachedLocation);
+                        if (mapRef.current) {
+                            mapRef.current.flyTo([cachedLocation.lat, cachedLocation.lng], 15);
+                        }
+                    } else {
+                        // Only use default as absolute last resort
+                        console.log('⚠️ Using default location as last resort');
+                        const defaultLocation = { lat: 11.0168, lng: 76.9558 };
+                        setUserLocation(defaultLocation);
+                        if (mapRef.current) {
+                            mapRef.current.flyTo([defaultLocation.lat, defaultLocation.lng], 15);
+                        }
+                    }
                 },
-                { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 } // Longer timeout, shorter cache age
             );
         } else {
             console.error("Geolocation is not supported by this browser.");
-            setUserLocation({ lat: 11.0168, lng: 76.9558 }); // Fallback location
+            // Use cached location if available
+            const cachedLocation = getLastLocation();
+            const fallbackLocation = cachedLocation || { lat: 11.0168, lng: 76.9558 };
+            setUserLocation(fallbackLocation);
         }
     }, []);
+
+    // --- LOCATION PERSISTENCE FUNCTIONS ---
+    const saveLastLocation = (location) => {
+        try {
+            const locationData = {
+                lat: location.lat,
+                lng: location.lng,
+                timestamp: Date.now()
+            };
+            localStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(locationData));
+            console.log('📍 Last location saved:', locationData);
+        } catch (error) {
+            console.error('❌ Failed to save location:', error);
+        }
+    };
+
+    const getLastLocation = () => {
+        try {
+            const savedLocation = localStorage.getItem(LOCATION_STORAGE_KEY);
+            if (!savedLocation) return null;
+
+            const locationData = JSON.parse(savedLocation);
+            // Use cached location if it's less than 24 hours old
+            const isRecent = Date.now() - locationData.timestamp < 24 * 60 * 60 * 1000;
+            
+            if (isRecent) {
+                console.log('📍 Using cached location:', locationData);
+                return { lat: locationData.lat, lng: locationData.lng };
+            } else {
+                console.log('⏰ Cached location too old, will use default');
+                localStorage.removeItem(LOCATION_STORAGE_KEY);
+                return null;
+            }
+        } catch (error) {
+            console.error('❌ Failed to load cached location:', error);
+            return null;
+        }
+    };
 
     // --- NAVIGATION PERSISTENCE FUNCTIONS ---
     const saveNavigationState = (navState) => {
@@ -280,11 +345,18 @@ const MapPage = () => {
     }, []);
 
     const filteredLocations = useMemo(() => {
+        // If navigating, only show the destination marker
         if (isNavigating && destination) {
             return allLocations.filter(loc => loc.id === destination.id);
         }
-        return activeCategory === 'all' ? allLocations : allLocations.filter(loc => loc.category === activeCategory);
-    }, [activeCategory, allLocations, isNavigating, destination]);
+
+        // Apply category filter to all locations
+        if (activeCategory === 'all') {
+            return allLocations;
+        }
+        return allLocations.filter(loc => loc.category === activeCategory);
+
+    }, [allLocations, activeCategory, isNavigating, destination]);
 
     const currentInstruction = useMemo(() => {
         if (!routeInfo || !routeInfo.instructions || currentInstructionIndex >= routeInfo.instructions.length) {
@@ -329,11 +401,11 @@ const MapPage = () => {
     // --- GEOLOCATION & NAVIGATION LOGIC ---
     useEffect(() => {
         const watchId = navigator.geolocation.watchPosition(
-            (pos) => setUserLocation([pos.coords.latitude, pos.coords.longitude]),
+            (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
             (err) => {
                 console.error("Geolocation error:", err);
                 setError(`ERROR: ${err.message}`);
-                if (!userLocation) setUserLocation([11.0168, 76.9558]); // Default to Coimbatore
+                if (!userLocation) setUserLocation({ lat: 11.0168, lng: 76.9558 }); // Default to Coimbatore
             },
             { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
@@ -345,13 +417,25 @@ const MapPage = () => {
     useEffect(() => {
         // Only trigger routing when navigation starts and routing hasn't been initiated yet
         if (isNavigating && userLocation && destination && !routingInitiated) {
+            // Validate that userLocation has valid coordinates
+            if (!userLocation.lat || !userLocation.lng || isNaN(userLocation.lat) || isNaN(userLocation.lng)) {
+                console.log('⚠️ Invalid user location for routing, waiting for valid coordinates');
+                return;
+            }
+            
+            // Validate that destination has valid coordinates
+            if (!destination.lat || !destination.lng || isNaN(destination.lat) || isNaN(destination.lng)) {
+                console.log('⚠️ Invalid destination coordinates for routing');
+                return;
+            }
+            
             console.log('🚀 Starting navigation routing...');
             setRoutingInitiated(true);
             
             // Small delay to ensure routing machine is ready
             setTimeout(() => {
                 if (routingMachineRef.current) {
-                    routingMachineRef.current.setWaypoints(userLocation, [destination.lat, destination.lng]);
+                    routingMachineRef.current.setWaypoints([userLocation.lat, userLocation.lng], [destination.lat, destination.lng]);
                 } else {
                     console.log('⚠️ No routing machine, using fallback route');
                     // Fallback: set route info directly if routing machine isn't ready
@@ -382,7 +466,19 @@ const MapPage = () => {
 
     useEffect(() => {
         if (isNavigating && userLocation && destination && routeInfo) {
-            const userLatLng = L.latLng(userLocation[0], userLocation[1]);
+            // Validate userLocation has valid coordinates
+            if (!userLocation.lat || !userLocation.lng || isNaN(userLocation.lat) || isNaN(userLocation.lng)) {
+                console.log('⚠️ Invalid user location, skipping distance calculation');
+                return;
+            }
+            
+            // Validate destination has valid coordinates
+            if (!destination.lat || !destination.lng || isNaN(destination.lat) || isNaN(destination.lng)) {
+                console.log('⚠️ Invalid destination, skipping distance calculation');
+                return;
+            }
+            
+            const userLatLng = L.latLng(userLocation.lat, userLocation.lng);
             const destinationLatLng = L.latLng(destination.lat, destination.lng);
             const distanceToDestination = userLatLng.distanceTo(destinationLatLng);
 
@@ -571,7 +667,15 @@ const MapPage = () => {
 
 
 
-    if (!userLocation) return <div className="loading-overlay">Detecting your location...</div>;
+    if (!userLocation) {
+        return (
+            <div className="loading-overlay">
+                <div className="loading-spinner"></div>
+                <h2>{isNavigating ? 'Restoring navigation...' : 'Detecting your location...'}</h2>
+                <p>Getting your current GPS position</p>
+            </div>
+        );
+    }
 
     return (
         <div className="map-page-container">

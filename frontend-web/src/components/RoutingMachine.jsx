@@ -177,14 +177,26 @@ const RoutingMachine = React.forwardRef(({ setInstructions }, ref) => {
 
     // Render the route line if we have coordinates
     if (routeCoordinates.length > 0) {
-        return (
-            <Polyline
-                positions={routeCoordinates}
-                color="#FF6700"
-                weight={7}
-                opacity={0.9}
-            />
+        // Validate coordinates to prevent NaN errors
+        const validCoordinates = routeCoordinates.filter(coord => 
+            Array.isArray(coord) && 
+            coord.length === 2 && 
+            !isNaN(coord[0]) && 
+            !isNaN(coord[1]) &&
+            isFinite(coord[0]) && 
+            isFinite(coord[1])
         );
+        
+        if (validCoordinates.length > 0) {
+            return (
+                <Polyline
+                    positions={validCoordinates}
+                    color="#FF6700"
+                    weight={7}
+                    opacity={0.9}
+                />
+            );
+        }
     }
 
     return null;
