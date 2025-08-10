@@ -799,8 +799,8 @@ const MapPage = () => {
                         zIndex: 1001,
                         textAlign: 'center'
                     }}>
-                        <div style={{ fontSize: '18px', fontWeight: 'bold' }}>{Math.round(routeInfo.summary.totalTime / 60)} min</div>
-                        <div style={{ fontSize: '14px', color: '#666' }}>({(routeInfo.summary.totalDistance / 1000).toFixed(1)} km) to {destination.name}</div>
+                        <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#000' }}>{Math.round(routeInfo.summary.totalTime / 60)} min</div>
+                        <div style={{ fontSize: '14px', color: '#000' }}>({(routeInfo.summary.totalDistance / 1000).toFixed(1)} km) to {destination.name}</div>
                     </div>
                 </>
             )}
