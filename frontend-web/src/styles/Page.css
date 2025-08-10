@@ -1,0 +1,20 @@
+.page-container {
+  width: 100%;
+  max-width: 480px; /* Mobile-first max-width */
+  margin: 0 auto; /* Center the container */
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+/* For larger screens, you can adjust the max-width */
+@media (min-width: 768px) {
+  .page-container {
+    max-width: 720px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .page-container {
+    max-width: 960px;
+  }
+}

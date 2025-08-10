@@ -213,7 +213,6 @@
         transform: translateX(0);
         overflow-x: auto;
         white-space: nowrap;
-        -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
     }
 
     .filter-bar::-webkit-scrollbar {

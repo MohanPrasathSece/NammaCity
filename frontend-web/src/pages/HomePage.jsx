@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { weatherAPI, serviceAPI } from '../services/api';
 import './HomePage.css';
+import '../styles/Page.css';
 
 const categories = [
   { 
@@ -135,7 +136,7 @@ export default function HomePage() {
   };
 
   return (
-    <main className="home-container">
+    <main className="home-container page-container">
       {/* Header */}
       <header className="home-header">
         <div className="header-content">
@@ -222,20 +223,13 @@ export default function HomePage() {
                   '--animation-delay': `${index * 0.1}s`
                 }}
               >
-                <div className="category-icon-wrapper">
-                  <div className="category-emoji">
-                    {category.emoji}
-                  </div>
-                  <div className="category-glow"></div>
+                <div className="category-emoji">
+                  {category.emoji}
                 </div>
-                <div className="category-info">
-                  <span className="category-name">
-                    {category.name}
-                  </span>
-                  <span className="category-description">
-                    {category.description}
-                  </span>
-                </div>
+                <span className="category-name">
+                  {category.name}
+                </span>
+                <div className="category-glow"></div>
                 <div className="category-arrow">→</div>
               </button>
             ))}
@@ -271,20 +265,7 @@ export default function HomePage() {
           </button>
         </div>
         
-        <div className="emergency-section">
-          <h3 className="emergency-title">Emergency Services</h3>
-          <div className="emergency-buttons">
-            <button className="emergency-btn police" aria-label="Call Police">
-              🚔 <span>Police</span>
-            </button>
-            <button className="emergency-btn fire" aria-label="Call Fire Department">
-              🚒 <span>Fire</span>
-            </button>
-            <button className="emergency-btn medical" aria-label="Call Medical Emergency">
-              🚑 <span>Medical</span>
-            </button>
-          </div>
-        </div>
+
       </section>
       {/* Footer */}
       <footer className="home-footer">

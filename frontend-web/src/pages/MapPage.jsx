@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
 import 'leaflet-routing-machine';
 import './MapPage.css';
+import '../styles/Page.css';
 
 // --- CUSTOM ICONS ---
 const createIcon = (icon, className) => L.divIcon({

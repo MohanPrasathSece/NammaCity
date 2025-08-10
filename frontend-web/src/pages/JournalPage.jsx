@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { journalAPI } from '../services/api.js';
 import './JournalPage.css';
+import '../styles/Page.css';
 
 const moods = ['😄', '🙂', '😐', '🙁', '😢', '😡', '🤩'];
 
@@ -38,7 +39,7 @@ export default function JournalPage() {
   };
 
   return (
-    <div className="journal-page">
+    <div className="journal-page page-container">
       <h2 className="page-title">My Journal</h2>
 
       <div className="journal-form">
