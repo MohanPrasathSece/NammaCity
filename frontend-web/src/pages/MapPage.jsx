@@ -39,6 +39,7 @@ const MapPage = () => {
     const [currentInstructionIndex, setCurrentInstructionIndex] = useState(0);
     const [isNavigating, setIsNavigating] = useState(false);
     const routingMachineRef = useRef(null);
+    const [routingInitiated, setRoutingInitiated] = useState(false);
     const [activeCategory, setActiveCategory] = useState('all');
     const [allLocations, setAllLocations] = useState([]);
     const [error, setError] = useState(null);
@@ -70,6 +71,32 @@ const MapPage = () => {
         return routeInfo.instructions[currentInstructionIndex];
     }, [routeInfo, currentInstructionIndex]);
 
+    // Auto-advance navigation instructions based on user progress
+    useEffect(() => {
+        if (!isNavigating || !routeInfo || !routeInfo.instructions || !userLocation) return;
+
+        const instructions = routeInfo.instructions;
+        const totalInstructions = instructions.length;
+        
+        // Simple progression: advance instruction every 30 seconds or based on distance
+        const progressInterval = setInterval(() => {
+            setCurrentInstructionIndex(prevIndex => {
+                const nextIndex = prevIndex + 1;
+                if (nextIndex >= totalInstructions) {
+                    // Reached destination - log only once
+                    if (prevIndex < totalInstructions - 1) {
+                        console.log('🏁 Navigation complete!');
+                    }
+                    return totalInstructions - 1; // Stay on last instruction
+                }
+                console.log(`📍 Advanced to instruction ${nextIndex + 1}/${totalInstructions}`);
+                return nextIndex;
+            });
+        }, 30000); // Advance every 30 seconds
+
+        return () => clearInterval(progressInterval);
+    }, [isNavigating, routeInfo, userLocation]);
+
     // --- GEOLOCATION & NAVIGATION LOGIC ---
     useEffect(() => {
         const watchId = navigator.geolocation.watchPosition(
@@ -85,28 +112,16 @@ const MapPage = () => {
     }, []);
 
     // This effect calls the method on the child component 
-    // to update the route when the user's location changes.
+    // to update the route when navigation starts (only once per session)
     useEffect(() => {
-        console.log('🔄 Routing useEffect triggered:', {
-            isNavigating,
-            hasUserLocation: !!userLocation,
-            hasDestination: !!destination,
-            hasRouteInfo: !!routeInfo,
-            shouldTriggerRouting: isNavigating && userLocation && destination && !routeInfo
-        });
-        
-        // Trigger routing when navigation starts
-        if (isNavigating && userLocation && destination && !routeInfo) {
-            console.log('🚀 Starting routing process...');
+        // Only trigger routing when navigation starts and routing hasn't been initiated yet
+        if (isNavigating && userLocation && destination && !routingInitiated) {
+            console.log('🚀 Starting navigation routing...');
+            setRoutingInitiated(true);
             
             // Small delay to ensure routing machine is ready
             setTimeout(() => {
-                console.log('⏰ Routing timeout triggered, checking routing machine:', {
-                    hasRoutingMachine: !!routingMachineRef.current
-                });
-                
                 if (routingMachineRef.current) {
-                    console.log('🗺️ Using routing machine for waypoints');
                     routingMachineRef.current.setWaypoints(userLocation, [destination.lat, destination.lng]);
                 } else {
                     console.log('⚠️ No routing machine, using fallback route');
@@ -288,6 +303,7 @@ const MapPage = () => {
         setDestination(null);
         setRouteInfo(null);
         setCurrentInstructionIndex(0);
+        setRoutingInitiated(false); // Reset routing flag for next navigation
         // Always re-select the location to show the popup again
         if (lastDestination) {
             setSelectedLocation(lastDestination);
@@ -337,16 +353,7 @@ const MapPage = () => {
                     />
                 ))}
 
-                {/* Route line visualization */}
-                {isNavigating && destination && userLocation && (
-                    <Polyline
-                        positions={[userLocation, [destination.lat, destination.lng]]}
-                        color="#FF6700"
-                        weight={6}
-                        opacity={0.8}
-                        dashArray="10, 5"
-                    />
-                )}
+                {/* Route line visualization handled by RoutingMachine */}
 
                 {isNavigating && destination && (
                     <RoutingMachine ref={routingMachineRef} setInstructions={setRouteInfo} />
@@ -355,16 +362,7 @@ const MapPage = () => {
 
             {/* Navigation Panel - shows only when navigating */}
             {(() => {
-                console.log('🔍 Navigation Panel Check:', {
-                    isNavigating,
-                    destination: destination?.name,
-                    routeInfo: routeInfo?.name,
-                    currentInstruction: currentInstruction?.text,
-                    shouldShow: isNavigating && destination
-                });
-                
                 if (isNavigating && destination) {
-                    console.log('✅ Navigation panel should be visible!');
                     
                     // Check if mobile (screen width < 768px)
                     const isMobile = window.innerWidth < 768;
@@ -412,6 +410,36 @@ const MapPage = () => {
                             </button>
 
                             <div className="navigation-content">
+                                {/* Turn-by-turn navigation instruction */}
+                                {currentInstruction && (
+                                    <div style={{
+                                        backgroundColor: '#FF6700',
+                                        color: 'white',
+                                        padding: '16px',
+                                        borderRadius: '12px',
+                                        marginBottom: '16px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '12px'
+                                    }}>
+                                        <div style={{ fontSize: '32px' }}>
+                                            {currentInstruction.direction === 'left' ? '⬅️' :
+                                             currentInstruction.direction === 'right' ? '➡️' :
+                                             currentInstruction.direction === 'straight' ? '⬆️' :
+                                             currentInstruction.type === 'arrive' ? '🏁' :
+                                             '🧭'}
+                                        </div>
+                                        <div style={{ flex: 1 }}>
+                                            <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '4px' }}>
+                                                {currentInstruction.text}
+                                            </div>
+                                            <div style={{ fontSize: '14px', opacity: '0.9' }}>
+                                                {(currentInstruction.distance / 1000).toFixed(1)} km • {Math.round(currentInstruction.time / 60)} min
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Enhanced navigation info with bigger fonts and orange colors */}
                                 <div style={{ paddingRight: '50px', paddingTop: '10px' }}>
                                     <h4 style={{ margin: '0 0 16px 0', fontSize: '24px', fontWeight: '700', color: '#FF6700' }}>
@@ -455,6 +483,32 @@ const MapPage = () => {
                                             </div>
                                         </div>
                                     )}
+
+                                    {/* Google Maps Button */}
+                                    <div style={{ marginTop: '16px' }}>
+                                        <button 
+                                            onClick={() => handleOpenInGoogleMaps(destination.lat, destination.lng)}
+                                            style={{
+                                                backgroundColor: '#4285F4',
+                                                color: 'white',
+                                                border: 'none',
+                                                padding: '12px 20px',
+                                                borderRadius: '8px',
+                                                fontSize: '16px',
+                                                fontWeight: '600',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '8px',
+                                                width: '100%',
+                                                justifyContent: 'center'
+                                            }}
+                                            onMouseOver={(e) => e.target.style.backgroundColor = '#3367D6'}
+                                            onMouseOut={(e) => e.target.style.backgroundColor = '#4285F4'}
+                                        >
+                                            🗺️ View on Google Maps
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
