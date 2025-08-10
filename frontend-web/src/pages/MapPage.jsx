@@ -29,6 +29,10 @@ const icons = {
     }),
 };
 
+// --- NAVIGATION PERSISTENCE CONSTANTS ---
+const NAVIGATION_STORAGE_KEY = 'urbanaid_navigation_state';
+const NAVIGATION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+
 // --- MAP PAGE COMPONENT ---
 const MapPage = () => {
     const mapRef = useRef(null);
@@ -43,6 +47,131 @@ const MapPage = () => {
     const [activeCategory, setActiveCategory] = useState('all');
     const [allLocations, setAllLocations] = useState([]);
     const [error, setError] = useState(null);
+    const navigationTimeoutRef = useRef(null);
+    const [mapBearing, setMapBearing] = useState(0);
+    const [isFollowingUser, setIsFollowingUser] = useState(false);
+
+    // --- NAVIGATION PERSISTENCE FUNCTIONS ---
+    const saveNavigationState = (navState) => {
+        try {
+            const stateWithTimestamp = {
+                ...navState,
+                timestamp: Date.now(),
+                expiresAt: Date.now() + NAVIGATION_TIMEOUT_MS
+            };
+            localStorage.setItem(NAVIGATION_STORAGE_KEY, JSON.stringify(stateWithTimestamp));
+            console.log('💾 Navigation state saved:', stateWithTimestamp);
+        } catch (error) {
+            console.error('❌ Failed to save navigation state:', error);
+        }
+    };
+
+    const loadNavigationState = () => {
+        try {
+            const savedState = localStorage.getItem(NAVIGATION_STORAGE_KEY);
+            if (!savedState) return null;
+
+            const parsedState = JSON.parse(savedState);
+            const now = Date.now();
+
+            // Check if navigation state has expired
+            if (now > parsedState.expiresAt) {
+                console.log('⏰ Navigation state expired, clearing...');
+                clearNavigationState();
+                return null;
+            }
+
+            console.log('📱 Navigation state loaded:', parsedState);
+            return parsedState;
+        } catch (error) {
+            console.error('❌ Failed to load navigation state:', error);
+            clearNavigationState();
+            return null;
+        }
+    };
+
+    const clearNavigationState = () => {
+        try {
+            localStorage.removeItem(NAVIGATION_STORAGE_KEY);
+            console.log('🗑️ Navigation state cleared');
+        } catch (error) {
+            console.error('❌ Failed to clear navigation state:', error);
+        }
+    };
+
+    const updateNavigationTimeout = () => {
+        // Clear existing timeout
+        if (navigationTimeoutRef.current) {
+            clearTimeout(navigationTimeoutRef.current);
+        }
+
+        // Set new timeout for 5 minutes
+        navigationTimeoutRef.current = setTimeout(() => {
+            console.log('⏰ Navigation timeout reached, clearing state...');
+            handleCancelNavigation();
+        }, NAVIGATION_TIMEOUT_MS);
+    };
+
+    // --- MAP NAVIGATION FUNCTIONS ---
+    const calculateBearing = (start, end) => {
+        const lat1 = start[0] * Math.PI / 180;
+        const lat2 = end[0] * Math.PI / 180;
+        const deltaLng = (end[1] - start[1]) * Math.PI / 180;
+        
+        const y = Math.sin(deltaLng) * Math.cos(lat2);
+        const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(deltaLng);
+        
+        let bearing = Math.atan2(y, x) * 180 / Math.PI;
+        // Normalize bearing to 0-360 degrees
+        bearing = (bearing + 360) % 360;
+        return bearing;
+    };
+
+    const handleRecenterMap = () => {
+        if (!mapRef.current || !userLocation) return;
+
+        setIsFollowingUser(true);
+
+        // Always center on the user's location with a smooth fly-to animation
+        mapRef.current.flyTo(userLocation, 16, {
+            animate: true,
+            duration: 1.5, // A slightly longer duration for a smoother effect
+        });
+
+        // Ensure any residual rotation is cleared
+        const mapContainer = mapRef.current.getContainer();
+        if (mapContainer && mapContainer.style.transform !== 'rotate(0deg)') {
+            mapContainer.style.transform = 'rotate(0deg)';
+            mapContainer.style.transition = 'transform 0.5s ease-in-out';
+        }
+    };
+
+    // --- RESTORE NAVIGATION STATE ON MOUNT ---
+    useEffect(() => {
+        const savedNavState = loadNavigationState();
+        if (savedNavState && savedNavState.isNavigating && savedNavState.destination) {
+            console.log('🔄 Restoring navigation state...');
+            setDestination(savedNavState.destination);
+            setIsNavigating(true);
+            setRouteInfo(savedNavState.routeInfo);
+            setCurrentInstructionIndex(savedNavState.currentInstructionIndex || 0);
+            setRoutingInitiated(savedNavState.routingInitiated || false);
+            setMapBearing(savedNavState.mapBearing || 0);
+            
+            // Restore route visualization if we have routing machine
+            setTimeout(() => {
+                if (routingMachineRef.current && savedNavState.userLocation && savedNavState.destination) {
+                    routingMachineRef.current.setWaypoints(
+                        savedNavState.userLocation, 
+                        [savedNavState.destination.lat, savedNavState.destination.lng]
+                    );
+                }
+            }, 1000);
+            
+            // Restart the navigation timeout
+            updateNavigationTimeout();
+        }
+    }, []);
 
     // --- FETCH DATA (SIMULATED) ---
     useEffect(() => {
@@ -57,6 +186,75 @@ const MapPage = () => {
         setAllLocations(mockLocations);
     }, []);
 
+    // --- SAVE NAVIGATION STATE WHENEVER IT CHANGES ---
+    useEffect(() => {
+        if (isNavigating && destination) {
+            const navigationState = {
+                isNavigating,
+                destination,
+                routeInfo,
+                currentInstructionIndex,
+                routingInitiated,
+                userLocation,
+                mapBearing
+            };
+            saveNavigationState(navigationState);
+            updateNavigationTimeout(); // Reset the 5-minute timer
+        } else if (!isNavigating) {
+            // Clear saved state when navigation stops
+            clearNavigationState();
+            if (navigationTimeoutRef.current) {
+                clearTimeout(navigationTimeoutRef.current);
+                navigationTimeoutRef.current = null;
+            }
+        }
+    }, [isNavigating, destination, routeInfo, currentInstructionIndex, routingInitiated, userLocation, mapBearing]);
+
+    // --- AUTO-FOLLOW USER DURING NAVIGATION ---
+    useEffect(() => {
+        if (isNavigating && userLocation && destination && mapRef.current) {
+            // Auto-center and orient map during navigation
+            const bearing = calculateBearing(userLocation, [destination.lat, destination.lng]);
+            setMapBearing(bearing);
+            
+            if (isFollowingUser) {
+                mapRef.current.setView(userLocation, 18, {
+                    animate: true,
+                    duration: 0.5
+                });
+                
+                // Apply rotation to face direction of travel
+                // We want "up" on screen to point toward destination
+                const rotationAngle = bearing - 90;
+                const mapContainer = mapRef.current.getContainer();
+                if (mapContainer) {
+                    mapContainer.style.transform = `rotate(${-rotationAngle}deg)`;
+                    mapContainer.style.transformOrigin = 'center center';
+                    mapContainer.style.transition = 'transform 0.5s ease-in-out';
+                }
+            }
+        }
+    }, [userLocation, isNavigating, destination, isFollowingUser]);
+
+    // --- START FOLLOWING USER WHEN NAVIGATION BEGINS ---
+    useEffect(() => {
+        if (isNavigating && userLocation && destination) {
+            setIsFollowingUser(true);
+            handleRecenterMap();
+        } else {
+            setIsFollowingUser(false);
+        }
+    }, [isNavigating]);
+
+    // --- CLEANUP ON UNMOUNT ---
+    useEffect(() => {
+        return () => {
+            if (navigationTimeoutRef.current) {
+                clearTimeout(navigationTimeoutRef.current);
+            }
+        };
+    }, []);
+
     const filteredLocations = useMemo(() => {
         if (isNavigating && destination) {
             return allLocations.filter(loc => loc.id === destination.id);
@@ -69,6 +267,13 @@ const MapPage = () => {
             return null;
         }
         return routeInfo.instructions[currentInstructionIndex];
+    }, [routeInfo, currentInstructionIndex]);
+
+    const nextInstruction = useMemo(() => {
+        if (!routeInfo || !routeInfo.instructions || (currentInstructionIndex + 1) >= routeInfo.instructions.length) {
+            return null;
+        }
+        return routeInfo.instructions[currentInstructionIndex + 1];
     }, [routeInfo, currentInstructionIndex]);
 
     // Auto-advance navigation instructions based on user progress
@@ -153,12 +358,25 @@ const MapPage = () => {
 
     useEffect(() => {
         if (isNavigating && userLocation && destination && routeInfo) {
+            const userLatLng = L.latLng(userLocation[0], userLocation[1]);
+            const destinationLatLng = L.latLng(destination.lat, destination.lng);
+            const distanceToDestination = userLatLng.distanceTo(destinationLatLng);
+
+            // Check if user has arrived at destination (within 50 meters)
+            if (distanceToDestination < 50) {
+                console.log('🏁 User has arrived at destination!');
+                setTimeout(() => {
+                    alert(`🎉 You have arrived at ${destination.name}!`);
+                    handleCancelNavigation();
+                }, 1000);
+                return;
+            }
+
             const instructions = routeInfo.instructions;
             if (instructions && currentInstructionIndex < instructions.length) {
                 const nextManeuver = instructions[currentInstructionIndex];
                 // Ensure latLng is available before creating L.latLng
                 if (nextManeuver && nextManeuver.latLng) {
-                    const userLatLng = L.latLng(userLocation[0], userLocation[1]);
                     const maneuverLatLng = L.latLng(nextManeuver.latLng.lat, nextManeuver.latLng.lng);
                     const distanceToManeuver = userLatLng.distanceTo(maneuverLatLng);
 
@@ -299,11 +517,21 @@ const MapPage = () => {
     const handleCancelNavigation = () => {
         console.log('🔙 Canceling navigation, returning to location popup');
         const lastDestination = destination; // Store destination before clearing
+        
+        // Clear navigation state
         setIsNavigating(false);
         setDestination(null);
         setRouteInfo(null);
         setCurrentInstructionIndex(0);
         setRoutingInitiated(false); // Reset routing flag for next navigation
+        
+        // Clear persistent storage and timeout
+        clearNavigationState();
+        if (navigationTimeoutRef.current) {
+            clearTimeout(navigationTimeoutRef.current);
+            navigationTimeoutRef.current = null;
+        }
+        
         // Always re-select the location to show the popup again
         if (lastDestination) {
             setSelectedLocation(lastDestination);
@@ -314,22 +542,13 @@ const MapPage = () => {
 
     return (
         <div className="map-page-container">
-            {/* Hide filter bar during navigation */}
-            {!isNavigating && (
-                <div className="filter-bar">
-                    <button onClick={() => handleCategoryClick('all')} className={activeCategory === 'all' ? 'active' : ''}>All</button>
-                    <button onClick={() => handleCategoryClick('food')} className={activeCategory === 'food' ? 'active' : ''}>🍴 Food</button>
-                    <button onClick={() => handleCategoryClick('shelter')} className={activeCategory === 'shelter' ? 'active' : ''}>🛌 Stays</button>
-                    <button onClick={() => handleCategoryClick('restZone')} className={activeCategory === 'restZone' ? 'active' : ''}>🛋️ Zones</button>
-                    <button onClick={() => handleCategoryClick('restroom')} className={activeCategory === 'restroom' ? 'active' : ''}>🚻 Restrooms</button>
-                </div>
-            )}
-
             <MapContainer 
                 ref={mapRef}
                 center={userLocation || [11.0168, 76.9558]} 
                 zoom={14} 
                 style={{ height: '100%', width: '100%' }}
+                zoomControl={false}
+                attributionControl={false}
             >
                 <TileLayer 
                     url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png"
@@ -353,171 +572,101 @@ const MapPage = () => {
                     />
                 ))}
 
-                {/* Route line visualization handled by RoutingMachine */}
-
                 {isNavigating && destination && (
                     <RoutingMachine ref={routingMachineRef} setInstructions={setRouteInfo} />
                 )}
             </MapContainer>
 
-            {/* Navigation Panel - shows only when navigating */}
-            {(() => {
-                if (isNavigating && destination) {
-                    
-                    // Check if mobile (screen width < 768px)
-                    const isMobile = window.innerWidth < 768;
-                    
-                    return (
-                        <div className="navigation-panel" style={{
-                            position: 'fixed',
-                            bottom: '0',
-                            left: '0',
-                            right: '0',
-                            height: '30vh', // Increased to 30% of screen height
-                            backgroundColor: 'white',
-                            color: '#333',
-                            padding: '20px',
-                            borderTopLeftRadius: '20px',
-                            borderTopRightRadius: '20px',
-                            boxShadow: '0 -6px 25px rgba(0, 0, 0, 0.15)',
-                            zIndex: 1000,
-                            borderBottom: 'none'
-                        }}>
-                            {/* Exit Button */}
-                            <button 
-                                onClick={handleCancelNavigation}
-                                style={{
-                                    position: 'absolute',
-                                    top: '12px',
-                                    right: '12px',
-                                    backgroundColor: '#f5f5f5',
-                                    border: '1px solid #ddd',
-                                    fontSize: '20px',
-                                    cursor: 'pointer',
-                                    color: '#666',
-                                    padding: '8px',
-                                    borderRadius: '50%',
-                                    width: '36px',
-                                    height: '36px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center'
-                                }}
-                                onMouseOver={(e) => e.target.style.backgroundColor = '#e0e0e0'}
-                                onMouseOut={(e) => e.target.style.backgroundColor = '#f5f5f5'}
-                            >
-                                ✕
-                            </button>
+            {/* --- OVERLAYS --- */}
 
-                            <div className="navigation-content">
-                                {/* Turn-by-turn navigation instruction */}
-                                {currentInstruction && (
-                                    <div style={{
-                                        backgroundColor: '#FF6700',
-                                        color: 'white',
-                                        padding: '16px',
-                                        borderRadius: '12px',
-                                        marginBottom: '16px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '12px'
-                                    }}>
-                                        <div style={{ fontSize: '32px' }}>
-                                            {currentInstruction.direction === 'left' ? '⬅️' :
-                                             currentInstruction.direction === 'right' ? '➡️' :
-                                             currentInstruction.direction === 'straight' ? '⬆️' :
-                                             currentInstruction.type === 'arrive' ? '🏁' :
-                                             '🧭'}
-                                        </div>
-                                        <div style={{ flex: 1 }}>
-                                            <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '4px' }}>
-                                                {currentInstruction.text}
-                                            </div>
-                                            <div style={{ fontSize: '14px', opacity: '0.9' }}>
-                                                {(currentInstruction.distance / 1000).toFixed(1)} km • {Math.round(currentInstruction.time / 60)} min
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
+            {/* Hide filter bar during navigation */}
+            {!isNavigating && (
+                <div className="filter-bar">
+                    <button onClick={() => handleCategoryClick('all')} className={activeCategory === 'all' ? 'active' : ''}>All</button>
+                    <button onClick={() => handleCategoryClick('food')} className={activeCategory === 'food' ? 'active' : ''}>🍴 Food</button>
+                    <button onClick={() => handleCategoryClick('shelter')} className={activeCategory === 'shelter' ? 'active' : ''}>🛌 Stays</button>
+                    <button onClick={() => handleCategoryClick('restZone')} className={activeCategory === 'restZone' ? 'active' : ''}>🛋️ Zones</button>
+                    <button onClick={() => handleCategoryClick('restroom')} className={activeCategory === 'restroom' ? 'active' : ''}>🚻 Restrooms</button>
+                </div>
+            )}
 
-                                {/* Enhanced navigation info with bigger fonts and orange colors */}
-                                <div style={{ paddingRight: '50px', paddingTop: '10px' }}>
-                                    <h4 style={{ margin: '0 0 16px 0', fontSize: '24px', fontWeight: '700', color: '#FF6700' }}>
-                                        🧭 {destination.name}
-                                    </h4>
-                                    {userLocation && routeInfo && (
-                                        <div style={{ 
-                                            display: 'flex', 
-                                            gap: '24px', 
-                                            fontSize: '18px', 
-                                            color: '#FF6700',
-                                            marginTop: '20px'
-                                        }}>
-                                            <div style={{ 
-                                                display: 'flex', 
-                                                alignItems: 'center', 
-                                                gap: '8px',
-                                                backgroundColor: '#FFF3E6',
-                                                padding: '12px 16px',
-                                                borderRadius: '25px',
-                                                border: '2px solid #FFE0CC'
-                                            }}>
-                                                <span style={{ fontSize: '20px' }}>📏</span>
-                                                <span style={{ fontWeight: '700', fontSize: '18px' }}>
-                                                    {(routeInfo.summary.totalDistance / 1000).toFixed(1)} km
-                                                </span>
-                                            </div>
-                                            <div style={{ 
-                                                display: 'flex', 
-                                                alignItems: 'center', 
-                                                gap: '8px',
-                                                backgroundColor: '#FFF3E6',
-                                                padding: '12px 16px',
-                                                borderRadius: '25px',
-                                                border: '2px solid #FFE0CC'
-                                            }}>
-                                                <span style={{ fontSize: '20px' }}>⏱️</span>
-                                                <span style={{ fontWeight: '700', fontSize: '18px' }}>
-                                                    {Math.round(routeInfo.summary.totalTime / 60)} min
-                                                </span>
-                                            </div>
-                                        </div>
-                                    )}
+            {/* Recenter Button - Always visible */}
+            <button
+                onClick={handleRecenterMap}
+                style={{
+                    position: 'fixed',
+                    bottom: window.innerWidth < 768 ? '90px' : '100px', // Adjusted for nav bar
+                    right: '20px',
+                    backgroundColor: 'white',
+                    border: '2px solid #ddd',
+                    borderRadius: '50%',
+                    width: '50px',
+                    height: '50px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    fontSize: '20px',
+                    boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
+                    zIndex: 1000,
+                    transition: 'all 0.2s ease',
+                    color: isFollowingUser ? '#FF6700' : '#666'
+                }}
+                title={isNavigating ? "Recenter and follow navigation" : "Center on my location"}
+            >
+                🎯
+            </button>
 
-                                    {/* Google Maps Button */}
-                                    <div style={{ marginTop: '16px' }}>
-                                        <button 
-                                            onClick={() => handleOpenInGoogleMaps(destination.lat, destination.lng)}
-                                            style={{
-                                                backgroundColor: '#4285F4',
-                                                color: 'white',
-                                                border: 'none',
-                                                padding: '12px 20px',
-                                                borderRadius: '8px',
-                                                fontSize: '16px',
-                                                fontWeight: '600',
-                                                cursor: 'pointer',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '8px',
-                                                width: '100%',
-                                                justifyContent: 'center'
-                                            }}
-                                            onMouseOver={(e) => e.target.style.backgroundColor = '#3367D6'}
-                                            onMouseOut={(e) => e.target.style.backgroundColor = '#4285F4'}
-                                        >
-                                            🗺️ View on Google Maps
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+            {/* Navigation UI - shows only when navigating */}
+            {isNavigating && routeInfo && currentInstruction && (
+                <>
+                    {/* Top Instruction Card */}
+                    <div style={{
+                        position: 'fixed',
+                        top: '20px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        width: 'calc(100% - 40px)',
+                        maxWidth: '450px',
+                        backgroundColor: 'rgba(255, 103, 0, 0.9)',
+                        color: 'white',
+                        padding: '12px 16px',
+                        borderRadius: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '16px',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                        zIndex: 1001,
+                        backdropFilter: 'blur(5px)'
+                    }}>
+                        <div style={{ fontSize: '48px', lineHeight: '1' }}>
+                            {currentInstruction.direction === 'left' ? '↰' : currentInstruction.direction === 'right' ? '↱' : '⬆️'}
                         </div>
-                    );
-                } else {
-                    console.log('❌ Navigation panel hidden:', { isNavigating, hasDestination: !!destination });
-                    return null;
-                }
-            })()}
+                        <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '22px', fontWeight: 'bold' }}>{currentInstruction.text}</div>
+                            {nextInstruction && <div style={{ fontSize: '16px', opacity: '0.9' }}>Then: {nextInstruction.text}</div>}
+                        </div>
+                        <button onClick={handleCancelNavigation} style={{ background: 'none', border: 'none', color: 'white', fontSize: '24px', cursor: 'pointer' }}>&times;</button>
+                    </div>
+
+                    {/* Bottom ETA/Distance Card */}
+                    <div style={{
+                        position: 'fixed',
+                        bottom: '80px', // Above nav bar
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        backgroundColor: 'white',
+                        padding: '8px 16px',
+                        borderRadius: '20px',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+                        zIndex: 1001,
+                        textAlign: 'center'
+                    }}>
+                        <div style={{ fontSize: '18px', fontWeight: 'bold' }}>{Math.round(routeInfo.summary.totalTime / 60)} min</div>
+                        <div style={{ fontSize: '14px', color: '#666' }}>({(routeInfo.summary.totalDistance / 1000).toFixed(1)} km) to {destination.name}</div>
+                    </div>
+                </>
+            )}
 
             {/* Location Detail Sheet - shows only when a location is selected AND we are NOT navigating */}
             {selectedLocation && !isNavigating && (
@@ -529,10 +678,7 @@ const MapPage = () => {
                             <h3>{selectedLocation.name}</h3>
                             <div className="header-tags">
                                 {selectedLocation.isFree && <span className="free-badge">Free</span>}
-                                {(() => {
-                                    const distance = userLocation ? (L.latLng(userLocation).distanceTo(L.latLng(selectedLocation.lat, selectedLocation.lng)) / 1000).toFixed(1) : null;
-                                    return distance && <span className="distance-tag">{distance} km away</span>;
-                                })()}
+                                <span className="distance-tag">{userLocation ? `${(L.latLng(userLocation).distanceTo(L.latLng(selectedLocation.lat, selectedLocation.lng)) / 1000).toFixed(1)} km` : ''}</span>
                             </div>
                         </div>
                         <p className="sheet-description">{selectedLocation.description}</p>
