@@ -36,12 +36,9 @@
 .greeting-text {
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--color-foreground);
+  color: var(--color-primary);
   margin: 0 0 0.25rem 0;
-  background: linear-gradient(135deg, var(--color-primary), #ff8533);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  /* Removed gradient for a cleaner look */
 }
 
 .greeting-subtitle {
