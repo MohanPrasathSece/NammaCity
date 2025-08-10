@@ -154,8 +154,9 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Weather Card */}
-      <section className={`weather-card ${isWeatherLoading ? 'loading' : ''}`} role="region" aria-label="Current weather">
+      <div className="home-content-scrollable">
+        {/* Weather Card */}
+        <section className={`weather-card ${isWeatherLoading ? 'loading' : ''}`} role="region" aria-label="Current weather">
         <div className="weather-header">
           <div className="location-time">
             <h2 className="location">
@@ -187,18 +188,7 @@ export default function HomePage() {
             </div>
           </div>
           
-          <div className="weather-details">
-            <div className="weather-stat">
-              <span className="stat-icon">💧</span>
-              <span className="stat-value">{weather.humidity}%</span>
-              <span className="stat-label">Humidity</span>
-            </div>
-            <div className="weather-stat">
-              <span className="stat-icon">💨</span>
-              <span className="stat-value">{weather.windSpeed} km/h</span>
-              <span className="stat-label">Wind</span>
-            </div>
-          </div>
+
         </div>
       </section>
 
@@ -255,6 +245,7 @@ export default function HomePage() {
         
 
       </section>
+      </div>
       {/* Footer */}
       <footer className="home-footer">
         <p className="footer-text">

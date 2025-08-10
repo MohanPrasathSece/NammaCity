@@ -51,6 +51,29 @@ const MapPage = () => {
     const [mapBearing, setMapBearing] = useState(0);
     const [isFollowingUser, setIsFollowingUser] = useState(false);
 
+    useEffect(() => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const { latitude, longitude } = position.coords;
+                    setUserLocation({ lat: latitude, lng: longitude });
+                    if (mapRef.current) {
+                        mapRef.current.flyTo([latitude, longitude], 15);
+                    }
+                },
+                (error) => {
+                    console.error("Error getting user location:", error);
+                    // Default to a fallback location if permission is denied or an error occurs
+                    setUserLocation({ lat: 11.0168, lng: 76.9558 }); // Coimbatore
+                },
+                { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+            );
+        } else {
+            console.error("Geolocation is not supported by this browser.");
+            setUserLocation({ lat: 11.0168, lng: 76.9558 }); // Fallback location
+        }
+    }, []);
+
     // --- NAVIGATION PERSISTENCE FUNCTIONS ---
     const saveNavigationState = (navState) => {
         try {
@@ -575,8 +598,7 @@ const MapPage = () => {
                             click: () => {
                                 setSelectedLocation(loc);
                                 if (mapRef.current) {
-                                    const zoomLevel = loc.category === 'food' ? 15 : 17;
-                                    mapRef.current.flyTo([loc.lat, loc.lng], zoomLevel);
+                                    mapRef.current.flyTo([loc.lat, loc.lng], 14);
                                 }
                             },
                         }}

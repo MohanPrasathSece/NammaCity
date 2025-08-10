@@ -1,14 +1,23 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
 
 /* ===== Home Page Styles ===== */
+/* ===== Home Page Styles ===== */
 .home-container {
-  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
   background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
-  padding: 0;
   font-family: 'Poppins', sans-serif;
   color: var(--color-foreground);
-  overflow-x: hidden;
+  overflow: hidden; /* Prevents whole page from scrolling */
 }
+
+.home-content-scrollable {
+  flex: 1;
+  overflow-y: auto; /* Allows content to scroll */
+  padding: 0 1rem; /* Add padding to the scrollable area */
+}
+
 
 /* Header */
 .home-header {
@@ -16,9 +25,9 @@
   background: rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(255, 103, 0, 0.1);
-  position: sticky;
-  top: 0;
+  position: static; /* Changed from sticky */
   z-index: 100;
+  flex-shrink: 0;
 }
 
 .header-content {
@@ -260,24 +269,24 @@
 .categories-scroll {
   display: flex;
   gap: 1rem;
+  padding: 0.5rem 1rem 1.5rem;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  padding: 0.5rem 0;
+  -webkit-overflow-scrolling: touch; /* for smooth scrolling on iOS */
+  scrollbar-width: none; /* for Firefox */
 }
 
 .categories-scroll::-webkit-scrollbar {
-  display: none;
+  display: none; /* for Chrome, Safari, and Opera */
 }
 
 .category-card {
   flex: 0 0 auto;
-  width: 120px;
-  height: 120px;
+  width: 90px; /* Default width */
+  height: 90px; /* Default height */
   background: linear-gradient(135deg, #2a2a2a 0%, #1e1e1e 100%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
+  border: 1px solid rgba(255, 103, 0, 0.1);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -297,7 +306,7 @@
 }
 
 .category-emoji {
-  font-size: 2.5rem;
+  font-size: 2rem;
   line-height: 1;
   transition: transform 0.3s ease;
 }
@@ -307,7 +316,7 @@
 }
 
 .category-name {
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--color-foreground);
   text-align: center;
@@ -508,10 +517,11 @@
 
 /* Footer */
 .home-footer {
-  padding: 2rem 1rem 1rem;
+  padding: 1rem;
   text-align: center;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
-  margin-top: 2rem;
+  flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.3);
 }
 
 .footer-text {
@@ -530,14 +540,35 @@
 }
 
 /* Responsive Design */
-@media (min-width: 375px) {
+@media (min-width: 768px) {
+  .home-container {
+    padding: 1.5rem;
+  }
+  
+  .weather-card {
+    padding: 2rem;
+  }
+  
+  .temperature {
+    font-size: 3.5rem;
+  }
+  
+  .categories-scroll {
+    justify-content: center;
+    gap: 1.5rem;
+  }
+  
   .category-card {
-    width: 110px;
-    height: 110px;
+    width: 130px;
+    height: 130px;
   }
   
   .category-emoji {
-    font-size: 2.25rem;
+    font-size: 2.5rem;
+  }
+  
+  .category-name {
+    font-size: 1rem;
   }
 }
 

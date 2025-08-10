@@ -7,20 +7,24 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
         name: 'Urban Aid',
         short_name: 'UrbanAid',
-        description: 'Community support and resource finder.',
-        theme_color: '#ffffff',
+        description: 'Urban services PWA with map, journal, chat & bookmarks',
+        theme_color: '#FF6700',
+        background_color: '#1a1a2e',
+        display: 'standalone',
+        scope: '/',
+        start_url: '/home',
         icons: [
           {
-            src: 'icon-192x192.png',
+            src: '/icons/icon-192x192.png',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any maskable'
           },
           {
-            src: 'icon-512x512.png',
+            src: '/icons/icon-512x512.png',
             sizes: '512x512',
             type: 'image/png'
           }
