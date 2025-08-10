@@ -151,24 +151,30 @@
     background-color: rgba(255, 255, 255, 0.8);
     -webkit-backdrop-filter: blur(5px);
     backdrop-filter: blur(5px);
-    padding: 8px;
-    border-radius: 30px;
+    padding: 6px;
+    border-radius: 25px;
     z-index: 1000;
     display: flex;
-    gap: 8px;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    max-width: 90vw;
 }
 
 .filter-bar button {
     background-color: transparent;
     border: none;
-    padding: 8px 16px;
-    border-radius: 20px;
+    padding: 4px 6px;
+    border-radius: 12px;
     cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: 500;
+    font-size: 0.75rem;
+    font-weight: 600;
     color: #333;
     transition: all 0.3s ease;
+    white-space: nowrap;
+    min-width: 0;
+    flex-shrink: 1;
 }
 
 .filter-bar button:hover {
@@ -363,13 +369,12 @@
     border-top-left-radius: 20px;
     border-top-right-radius: 20px;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
-    z-index: 1100;
-    padding: 16px;
-    animation: slide-up 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-    max-height: 90vh;
-    overflow-y: auto;
+    z-index: 1001;
+    padding: 12px;
     display: flex;
     flex-direction: column;
+    animation: slide-up 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    max-height: 70vh; /* Set a max-height */
 }
 
 @keyframes slide-up {
@@ -401,79 +406,116 @@
 }
 
 .sheet-content {
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1; /* Allows content to fill space */
+    overflow-y: auto; /* Allows content to scroll if needed */
 }
 
 .sheet-photo {
     width: 100%;
-    height: 180px;
+    height: 160px; /* Further reduced height */
     object-fit: cover;
-    border-radius: 12px;
-    margin-bottom: 16px;
+    border-radius: 8px;
+    margin-bottom: 8px; /* Standardized margin */
 }
 
 .sheet-header {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
     align-items: flex-start;
-    margin-bottom: 12px;
+    gap: 8px; /* Standardized gap */
+    width: 100%;
+    margin-bottom: 8px; /* Standardized margin */
 }
 
 .sheet-header h3 {
     margin: 0;
-    margin-right: 16px;
-    line-height: 1.3;
-    font-size: 1.4rem;
+    font-size: 1.3rem;
+    line-height: 1.2;
+    color: #333; /* Ensure title is visible */
+    font-weight: 700;
 }
 
-.header-tags {
+.header-tags-row {
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
+    align-items: center;
     gap: 8px;
-    flex-shrink: 0;
 }
 
-.free-badge {
+/* --- Unified Header Tag Styles --- */
+.header-tag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 30px;
+    padding: 0 12px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    border: none;
+    cursor: default;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.header-tag.tag-free {
     background-color: #28a745;
     color: white;
-    padding: 4px 10px;
-    border-radius: 12px;
-    font-size: 0.8rem;
-    font-weight: bold;
+}
+
+.header-tag.tag-distance {
+    background-color: #f0f0f0;
+    color: #333;
+}
+
+.header-tag.tag-gmaps {
+    background-color: #4285F4;
+    color: white;
+    cursor: pointer;
+    gap: 5px;
+}
+
+.header-tag.tag-gmaps:hover {
+    background-color: #3367D6;
 }
 
 .sheet-description {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     color: #555;
-    margin-bottom: 16px;
+    margin: 0 0 10px 0; /* Tightened margins */
+    line-height: 1.4;
 }
 
 .sheet-info {
-    background-color: #f8f9fa;
+    background-color: #f0f0f0;
     border-radius: 8px;
-    padding: 12px;
-    margin-bottom: 16px;
+    padding: 8px 12px;
+    margin: 4px 0 12px 0; /* Fine-tuned margins */
+    font-size: 0.85rem;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .sheet-info p {
-    margin: 0 0 8px 0;
-    font-size: 0.9rem;
+    margin: 2px 0;
     color: #333;
+    line-height: 1.4;
 }
 
 .sheet-info p:last-child {
     margin-bottom: 0;
 }
 
-.sheet-actions {
-    display: grid;
-    grid-template-columns: 1fr;
+.sheet-actions-row {
+    display: flex;
     gap: 10px;
     margin-top: auto; /* Pushes actions to the bottom */
-    padding-top: 16px; /* Adds space above buttons */
+    padding-top: 10px; /* Space above buttons */
+    width: 100%;
+}
+
+.sheet-actions-row button {
+    flex: 1; /* Equal width buttons */
 }
 
 /* Desktop-specific styles */

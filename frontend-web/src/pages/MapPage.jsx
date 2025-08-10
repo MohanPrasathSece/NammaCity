@@ -146,26 +146,40 @@ const MapPage = () => {
         }
     };
 
+    const handleCancelNavigation = () => {
+        console.log('🛑 Cancelling navigation...');
+        setIsNavigating(false);
+        setDestination(null);
+        setRouteInfo(null);
+        setRoutingInitiated(false);
+        
+        // Re-center the map on the user's location
+        handleRecenterMap();
+
+        // Clear the timeout
+        if (navigationTimeoutRef.current) {
+            clearTimeout(navigationTimeoutRef.current);
+            navigationTimeoutRef.current = null;
+        }
+    };
+
     // --- RESTORE NAVIGATION STATE ON MOUNT ---
     useEffect(() => {
         const savedNavState = loadNavigationState();
+        // Don't restore userLocation from storage, wait for a fresh one.
         if (savedNavState && savedNavState.isNavigating && savedNavState.destination) {
             console.log('🔄 Restoring navigation state...');
             setDestination(savedNavState.destination);
             setIsNavigating(true);
             setRouteInfo(savedNavState.routeInfo);
             setCurrentInstructionIndex(savedNavState.currentInstructionIndex || 0);
-            setRoutingInitiated(savedNavState.routingInitiated || false);
+            // By not restoring routingInitiated, we force the routing useEffect to re-run with the new location.
             setMapBearing(savedNavState.mapBearing || 0);
             
             // Restore route visualization if we have routing machine
             setTimeout(() => {
-                if (routingMachineRef.current && savedNavState.userLocation && savedNavState.destination) {
-                    routingMachineRef.current.setWaypoints(
-                        savedNavState.userLocation, 
-                        [savedNavState.destination.lat, savedNavState.destination.lng]
-                    );
-                }
+                // The main useEffect hook for routing will now handle this, once a fresh userLocation is available.
+                // No need to do anything here.
             }, 1000);
             
             // Restart the navigation timeout
@@ -213,25 +227,12 @@ const MapPage = () => {
     // --- AUTO-FOLLOW USER DURING NAVIGATION ---
     useEffect(() => {
         if (isNavigating && userLocation && destination && mapRef.current) {
-            // Auto-center and orient map during navigation
-            const bearing = calculateBearing(userLocation, [destination.lat, destination.lng]);
-            setMapBearing(bearing);
-            
+            // Auto-center map during navigation without re-orienting
             if (isFollowingUser) {
                 mapRef.current.setView(userLocation, 18, {
                     animate: true,
-                    duration: 0.5
+                    pan: { duration: 1 }
                 });
-                
-                // Apply rotation to face direction of travel
-                // We want "up" on screen to point toward destination
-                const rotationAngle = bearing - 90;
-                const mapContainer = mapRef.current.getContainer();
-                if (mapContainer) {
-                    mapContainer.style.transform = `rotate(${-rotationAngle}deg)`;
-                    mapContainer.style.transformOrigin = 'center center';
-                    mapContainer.style.transition = 'transform 0.5s ease-in-out';
-                }
             }
         }
     }, [userLocation, isNavigating, destination, isFollowingUser]);
@@ -390,6 +391,18 @@ const MapPage = () => {
     }, [userLocation, isNavigating, destination, routeInfo, currentInstructionIndex]);
 
     const handleNavigateClick = (loc) => {
+        if (!userLocation) return;
+
+        // Calculate bearing and set it once when navigation starts
+        const bearing = calculateBearing(userLocation, [loc.lat, loc.lng]);
+        setMapBearing(bearing);
+
+        // Rotate the map to face the destination
+        const mapContainer = mapRef.current.getContainer();
+        if (mapContainer) {
+            mapContainer.style.transform = `rotate(${-bearing}deg)`;
+            mapContainer.style.transition = 'transform 0.5s ease-in-out';
+        }
         console.log('🚀 NAVIGATE CLICKED!', {
             location: loc,
             userLocation,
@@ -480,22 +493,25 @@ const MapPage = () => {
             setRouteInfo(routeData);
             
             // Zoom to user location instead of showing both locations
-            if (mapRef.current) {
-                // Use flyTo instead of setView for better control
-                mapRef.current.flyTo(userLocation, 14, {
-                    animate: true,
-                    duration: 1
-                });
-                
-                // Explicitly prevent any rotation by ensuring the map container has no transform
-                setTimeout(() => {
-                    const mapContainer = mapRef.current?.getContainer();
-                    if (mapContainer) {
-                        mapContainer.style.transform = 'rotate(0deg)';
-                        mapContainer.style.transition = 'transform 0.3s ease';
-                    }
-                }, 100);
-            }
+            // Use a longer delay to ensure it happens after RoutingMachine calculations
+            setTimeout(() => {
+                if (mapRef.current) {
+                    // Use flyTo instead of setView for better control
+                    mapRef.current.flyTo(userLocation, 14, {
+                        animate: true,
+                        duration: 1
+                    });
+                    
+                    // Explicitly prevent any rotation by ensuring the map container has no transform
+                    setTimeout(() => {
+                        const mapContainer = mapRef.current?.getContainer();
+                        if (mapContainer) {
+                            mapContainer.style.transform = 'rotate(0deg)';
+                            mapContainer.style.transition = 'transform 0.3s ease';
+                        }
+                    }, 100);
+                }
+            }, 1500); // Wait 1.5 seconds for routing calculations to complete
         } else {
             console.warn('❌ No user location available for navigation');
         }
@@ -513,7 +529,14 @@ const MapPage = () => {
         if (!mapRef.current) return; // Prevent crash if map is not ready
 
         if (category === 'all') {
-            if (userLocation) mapRef.current.flyTo(userLocation, 15);
+            // Show all locations by fitting bounds to include all places
+            if (allLocations.length > 0) {
+                const bounds = L.latLngBounds(allLocations.map(loc => [loc.lat, loc.lng]));
+                mapRef.current.flyToBounds(bounds, { padding: [50, 50], maxZoom: 13 });
+            } else if (userLocation) {
+                // Fallback to user location if no places available
+                mapRef.current.flyTo(userLocation, 12);
+            }
             return;
         }
         const categoryLocations = allLocations.filter(loc => loc.category === category);
@@ -523,29 +546,7 @@ const MapPage = () => {
         }
     };
 
-    const handleCancelNavigation = () => {
-        console.log('🔙 Canceling navigation, returning to location popup');
-        const lastDestination = destination; // Store destination before clearing
-        
-        // Clear navigation state
-        setIsNavigating(false);
-        setDestination(null);
-        setRouteInfo(null);
-        setCurrentInstructionIndex(0);
-        setRoutingInitiated(false); // Reset routing flag for next navigation
-        
-        // Clear persistent storage and timeout
-        clearNavigationState();
-        if (navigationTimeoutRef.current) {
-            clearTimeout(navigationTimeoutRef.current);
-            navigationTimeoutRef.current = null;
-        }
-        
-        // Always re-select the location to show the popup again
-        if (lastDestination) {
-            setSelectedLocation(lastDestination);
-        }
-    };
+
 
     if (!userLocation) return <div className="loading-overlay">Detecting your location...</div>;
 
@@ -574,7 +575,8 @@ const MapPage = () => {
                             click: () => {
                                 setSelectedLocation(loc);
                                 if (mapRef.current) {
-                                    mapRef.current.flyTo([loc.lat, loc.lng], 16);
+                                    const zoomLevel = loc.category === 'food' ? 15 : 17;
+                                    mapRef.current.flyTo([loc.lat, loc.lng], zoomLevel);
                                 }
                             },
                         }}
@@ -636,26 +638,26 @@ const MapPage = () => {
                         left: '50%',
                         transform: 'translateX(-50%)',
                         width: 'calc(100% - 40px)',
-                        maxWidth: '450px',
+                        maxWidth: '350px',
                         backgroundColor: 'rgba(255, 103, 0, 0.9)',
                         color: 'white',
-                        padding: '12px 16px',
-                        borderRadius: '12px',
+                        padding: '8px 12px',
+                        borderRadius: '10px',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '16px',
+                        gap: '12px',
                         boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
                         zIndex: 1001,
                         backdropFilter: 'blur(5px)'
                     }}>
-                        <div style={{ fontSize: '48px', lineHeight: '1' }}>
+                        <div style={{ fontSize: '32px', lineHeight: '1' }}>
                             {currentInstruction.direction === 'left' ? '↰' : currentInstruction.direction === 'right' ? '↱' : '⬆️'}
                         </div>
                         <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: '22px', fontWeight: 'bold' }}>{currentInstruction.text}</div>
-                            {nextInstruction && <div style={{ fontSize: '16px', opacity: '0.9' }}>Then: {nextInstruction.text}</div>}
+                            <div style={{ fontSize: '16px', fontWeight: 'bold' }}>{currentInstruction.text}</div>
+                            {nextInstruction && <div style={{ fontSize: '12px', opacity: '0.9' }}>Then: {nextInstruction.text}</div>}
                         </div>
-                        <button onClick={handleCancelNavigation} style={{ background: 'none', border: 'none', color: 'white', fontSize: '24px', cursor: 'pointer' }}>&times;</button>
+                        <button onClick={handleCancelNavigation} style={{ background: 'none', border: 'none', color: 'white', fontSize: '18px', cursor: 'pointer' }}>&times;</button>
                     </div>
 
                     {/* Bottom ETA/Distance Card */}
@@ -685,17 +687,27 @@ const MapPage = () => {
                         <img src={selectedLocation.photoUrl} alt={selectedLocation.name} className="sheet-photo" />
                         <div className="sheet-header">
                             <h3>{selectedLocation.name}</h3>
-                            <div className="header-tags">
-                                {selectedLocation.isFree && <span className="free-badge">Free</span>}
-                                <span className="distance-tag">{userLocation ? `${(L.latLng(userLocation).distanceTo(L.latLng(selectedLocation.lat, selectedLocation.lng)) / 1000).toFixed(1)} km` : ''}</span>
+                            <div className="header-tags-row">
+                                {selectedLocation.isFree && <button className="header-tag tag-free" disabled>Free</button>}
+                                <button className="header-tag tag-distance" disabled>{userLocation ? `${(L.latLng(userLocation).distanceTo(L.latLng(selectedLocation.lat, selectedLocation.lng)) / 1000).toFixed(1)} km` : ''}</button>
+                                <button 
+                                    className="header-tag tag-gmaps"
+                                    onClick={() => handleOpenInGoogleMaps(selectedLocation.lat, selectedLocation.lng)}
+                                    title="Open in Google Maps"
+                                >
+                                    🗺️ Google Maps
+                                </button>
                             </div>
                         </div>
                         <p className="sheet-description">{selectedLocation.description}</p>
-                        <div className="sheet-info"><p><strong>Timings:</strong> {selectedLocation.timing}</p><p><strong>Open:</strong> {selectedLocation.activeDays}</p></div>
-                        <div className="sheet-actions">
+                        <div className="sheet-info">
+    <p><strong>Timings:</strong> {selectedLocation.timing || 'Not available'}</p>
+    <p><strong>Open:</strong> {selectedLocation.activeDays || 'Not available'}</p>
+</div>
+                        {/* The empty box was here and has been removed */}
+                        <div className="sheet-actions-row">
                             <button className="nav-button" onClick={() => handleNavigateClick(selectedLocation)}>Navigate &rarr;</button>
                             <button className="review-button" onClick={() => handleAddReviewClick(selectedLocation.id)}>Add Review</button>
-                            <button className="google-maps-button" onClick={() => handleOpenInGoogleMaps(selectedLocation.lat, selectedLocation.lng)}>View on Google Maps</button>
                         </div>
                     </div>
                 </div>
