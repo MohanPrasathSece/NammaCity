@@ -353,11 +353,17 @@
   margin-top: auto;
 }
 
+.home-actions-centered {
+  display: flex;
+  justify-content: center;
+  padding: 20px 0;
+}
+
 .action-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
-  margin-bottom: 2rem;
+  margin-top: 1.5rem;
 }
 
 .action-btn {

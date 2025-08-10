@@ -239,28 +239,16 @@ export default function HomePage() {
 
       {/* Quick Actions */}
       <section className="quick-actions" role="region" aria-label="Quick actions">
-        <div className="action-grid">
+        <div className="home-actions-centered">
           <button 
             className="action-btn primary"
             onClick={() => navigate('/map')}
-            aria-label="View all services on map"
+            aria-label="Explore the map"
           >
             <span className="action-icon">🗺️</span>
             <span className="action-text">
               <strong>Explore Map</strong>
               <small>Find services nearby</small>
-            </span>
-          </button>
-          
-          <button 
-            className="action-btn secondary"
-            onClick={() => navigate('/dashboard')}
-            aria-label="Go to dashboard"
-          >
-            <span className="action-icon">📊</span>
-            <span className="action-text">
-              <strong>Dashboard</strong>
-              <small>Your activity</small>
             </span>
           </button>
         </div>
