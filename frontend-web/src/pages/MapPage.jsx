@@ -479,13 +479,22 @@ const MapPage = () => {
             console.log('🗺️ Setting detailed route info:', routeData);
             setRouteInfo(routeData);
             
-            // Auto-zoom to show both locations
+            // Zoom to user location instead of showing both locations
             if (mapRef.current) {
-                const bounds = L.latLngBounds([userLocation, [loc.lat, loc.lng]]);
-                mapRef.current.fitBounds(bounds, { 
-                    padding: [50, 50],
-                    maxZoom: 15
+                // Use flyTo instead of setView for better control
+                mapRef.current.flyTo(userLocation, 14, {
+                    animate: true,
+                    duration: 1
                 });
+                
+                // Explicitly prevent any rotation by ensuring the map container has no transform
+                setTimeout(() => {
+                    const mapContainer = mapRef.current?.getContainer();
+                    if (mapContainer) {
+                        mapContainer.style.transform = 'rotate(0deg)';
+                        mapContainer.style.transition = 'transform 0.3s ease';
+                    }
+                }, 100);
             }
         } else {
             console.warn('❌ No user location available for navigation');
