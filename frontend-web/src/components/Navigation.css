@@ -1,16 +1,17 @@
 /* Snapchat-style Bottom Navigation */
-.bottom-navigation {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 1000;
-  background: rgba(26, 26, 46, 0.95);
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
-  font-family: 'Poppins', sans-serif;
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background-color: #1e1e1e;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+    border-top: 1px solid rgba(255, 103, 0, 0.2);
+    z-index: 1000;
 }
 
 .nav-container {
@@ -23,19 +24,15 @@
 }
 
 .nav-item {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 12px;
-  background: transparent;
-  border: none;
-  border-radius: 16px;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  min-width: 60px;
-  color: rgba(255, 255, 255, 0.7);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #a0a0a0;
+    text-decoration: none;
+    flex: 1;
+    height: 100%;
+    transition: color 0.2s ease-in-out, transform 0.2s ease-in-out;
 }
 
 .nav-item:hover {
@@ -44,27 +41,23 @@
 }
 
 .nav-item.active {
-  color: var(--accent-color, #FF6700);
-  background: rgba(255, 103, 0, 0.1);
+    color: #ff6700;
 }
 
 .nav-icon {
-  font-size: 24px;
-  line-height: 1;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-  transition: all 0.3s ease;
+    font-size: 24px;
+    margin-bottom: 2px;
 }
 
 .nav-item.active .nav-icon {
-  filter: drop-shadow(0 4px 8px rgba(255, 103, 0, 0.4));
+    transform: scale(1.1);
 }
 
-.nav-label {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  line-height: 1;
+.nav-text {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .nav-indicator {
@@ -74,9 +67,9 @@
   transform: translateX(-50%);
   width: 4px;
   height: 4px;
-  background: var(--accent-color, #FF6700);
+  background: #ff6700;
   border-radius: 50%;
-  box-shadow: 0 0 8px var(--accent-color, #FF6700);
+  box-shadow: 0 0 8px #ff6700;
 }
 
 /* Responsive adjustments */
