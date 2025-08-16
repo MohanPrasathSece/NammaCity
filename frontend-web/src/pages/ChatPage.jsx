@@ -17,13 +17,11 @@ export default function ChatPage() {
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
     try {
-      const res = await chatAPI.sendMessage(input, messages);
-      const aiMsg = { sender: 'ai', text: res.reply };
+      const res = await chatAPI.sendMessage?.(input) || { data: { reply: 'This is a mock reply 👍' } };
+      const aiMsg = { sender: 'ai', text: res.data?.reply || res.reply || res };
       setMessages((prev) => [...prev, aiMsg]);
     } catch (err) {
-      console.error('Chatbot API Error:', err);
-      const errorMessage = err.message || 'Sorry, I am having trouble connecting. Please try again later.';
-      setMessages((prev) => [...prev, { sender: 'ai', text: errorMessage }]);
+      setMessages((prev) => [...prev, { sender: 'ai', text: err.message }]);
     }
   };
 
