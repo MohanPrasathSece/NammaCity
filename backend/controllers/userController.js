@@ -51,13 +51,13 @@ exports.getProfile = asyncHandler(async (req, res) => {
 // @route   PUT /api/user/profile
 // @access  Private
 exports.updateProfile = asyncHandler(async (req, res) => {
-  const { name, fullName, email, phone, bio, avatar } = req.body;
-  
+  const { name, email, phone, bio, avatar } = req.body;
+
   // Validate required fields
-  if (!name && !fullName) {
+  if (!name) {
     return res.status(400).json({ 
       success: false, 
-      message: 'Name or full name is required' 
+      message: 'Name is required' 
     });
   }
 
@@ -72,20 +72,14 @@ exports.updateProfile = asyncHandler(async (req, res) => {
     }
   }
 
-  // Prepare update object
+  // Prepare update object using dot notation for nested fields
   const updateData = {};
   
   if (name) updateData.name = name.trim();
-  if (fullName) updateData.fullName = fullName.trim();
   if (email) updateData.email = email.toLowerCase().trim();
   if (phone) updateData.phone = phone.trim();
-  
-  // Update profile nested fields
-  if (bio !== undefined || avatar !== undefined) {
-    updateData.profile = { ...req.user.profile };
-    if (bio !== undefined) updateData.profile.bio = bio.trim();
-    if (avatar !== undefined) updateData.profile.avatar = avatar;
-  }
+  if (bio !== undefined) updateData['profile.bio'] = bio.trim();
+  if (avatar !== undefined) updateData['profile.avatar'] = avatar;
 
   try {
     const user = await User.findByIdAndUpdate(

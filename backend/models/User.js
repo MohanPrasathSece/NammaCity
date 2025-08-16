@@ -20,7 +20,14 @@ const userSchema = new mongoose.Schema({
   },
   phone: {
     type: String,
-    required: true
+    required: false,
+    default: null,
+    sparse: true
+  },
+  // Debug field to track document creation
+  createdAtDebug: {
+    type: Date,
+    default: Date.now
   },
   role: {
     type: String,

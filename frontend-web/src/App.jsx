@@ -5,7 +5,6 @@ import RegisterPage from './pages/RegisterPage.jsx';
 import MapPage from './pages/MapPage.jsx';
 import JournalPage from './pages/JournalPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
-import BookmarksPage from './pages/BookmarksPage.jsx';
 import ChatPage from './pages/ChatPage.jsx';
 import HomePage from './pages/HomePage.jsx';
 import PrivateRoute from './components/PrivateRoute.jsx';
@@ -48,14 +47,6 @@ function AppContent() {
           element={
             <PrivateRoute>
               <ChatPage />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/bookmarks"
-          element={
-            <PrivateRoute>
-              <BookmarksPage />
             </PrivateRoute>
           }
         />

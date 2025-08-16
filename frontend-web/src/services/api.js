@@ -96,15 +96,9 @@ export const weatherAPI = {
 };
 
 export const chatAPI = {
-  sendMessage: (message) => api.post('/chat', { message }),
-  getChatHistory: () => api.get('/chat/history'),
+  sendMessage: (message, history) => api.post('/chat', { message, history }),
 };
 
-export const bookmarkAPI = {
-  getMyBookmarks: () => api.get('/bookmarks/my'),
-  addBookmark: (serviceId) => api.post(`/bookmarks/${serviceId}`),
-  removeBookmark: (serviceId) => api.delete(`/bookmarks/${serviceId}`)
-};
 
 export const journalAPI = {
   getEntries: () => api.get('/journals/my'),

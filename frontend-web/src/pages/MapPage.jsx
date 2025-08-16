@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import RoutingMachine from '../components/RoutingMachine';
 import L from 'leaflet';
@@ -36,6 +37,8 @@ const NAVIGATION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 // --- MAP PAGE COMPONENT ---
 const MapPage = () => {
+    const [searchParams] = useSearchParams();
+    const categoryFromUrl = searchParams.get('category');
     const mapRef = useRef(null);
     const [userLocation, setUserLocation] = useState(null);
     const [selectedLocation, setSelectedLocation] = useState(null);
@@ -335,11 +338,18 @@ const MapPage = () => {
         }
     }, [isNavigating]);
 
-    // --- CLEANUP ON UNMOUNT ---
+    // Set initial category from URL
+    useEffect(() => {
+        if (categoryFromUrl && ['food', 'shelter', 'restZone', 'restroom'].includes(categoryFromUrl)) {
+            handleCategoryClick(categoryFromUrl);
+        }
+    }, [categoryFromUrl]);
+
+    // Cleanup map instance on component unmount
     useEffect(() => {
         return () => {
-            if (navigationTimeoutRef.current) {
-                clearTimeout(navigationTimeoutRef.current);
+            if (mapRef.current) {
+                mapRef.current.remove();
             }
         };
     }, []);
@@ -645,23 +655,60 @@ const MapPage = () => {
 
     const handleCategoryClick = (category) => {
         setActiveCategory(category);
+        
+        // Update URL with the selected category
+        const searchParams = new URLSearchParams(window.location.search);
+        if (category === 'all') {
+            searchParams.delete('category');
+        } else {
+            searchParams.set('category', category);
+        }
+        window.history.pushState({}, '', `${window.location.pathname}?${searchParams.toString()}`);
+        
         if (!mapRef.current) return; // Prevent crash if map is not ready
+
+        const getZoomOptions = (count) => {
+            if (count === 0) return { zoom: 12 };
+            if (count === 1) return { zoom: 14 };
+            if (count <= 3) return { padding: [100, 100], maxZoom: 14 };
+            return { padding: [60, 60], maxZoom: 14 };
+        };
 
         if (category === 'all') {
             // Show all locations by fitting bounds to include all places
             if (allLocations.length > 0) {
                 const bounds = L.latLngBounds(allLocations.map(loc => [loc.lat, loc.lng]));
-                mapRef.current.flyToBounds(bounds, { padding: [50, 50], maxZoom: 13 });
+                const options = getZoomOptions(allLocations.length);
+                mapRef.current.flyToBounds(bounds, {
+                    ...options,
+                    duration: 1, // Slightly faster animation
+                    easeLinearity: 0.5,
+                    paddingTopLeft: [20, 20],
+                    paddingBottomRight: [20, 80] // Extra space at bottom for UI elements
+                });
             } else if (userLocation) {
                 // Fallback to user location if no places available
-                mapRef.current.flyTo(userLocation, 12);
+                mapRef.current.flyTo(userLocation, 14);
             }
             return;
         }
+
         const categoryLocations = allLocations.filter(loc => loc.category === category);
         if (categoryLocations.length > 0) {
             const bounds = L.latLngBounds(categoryLocations.map(loc => [loc.lat, loc.lng]));
-            mapRef.current.flyToBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+            const options = getZoomOptions(categoryLocations.length);
+            
+            // Add a small buffer to the bounds for better visibility
+            bounds.pad(0.05);
+            
+            mapRef.current.flyToBounds(bounds, {
+                ...options,
+                duration: 1,
+                easeLinearity: 0.5,
+                paddingTopLeft: [20, 20],
+                paddingBottomRight: [20, 80],
+                animate: true
+            });
         }
     };
 

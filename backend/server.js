@@ -38,9 +38,9 @@ app.use('/api/bookings', require('./routes/bookingRoutes'));
 app.use('/api/reviews', require('./routes/reviewRoutes'));
 app.use('/api/weather', require('./routes/weatherRoutes'));
 app.use('/api/journals', require('./routes/journalRoutes'));
-app.use('/api/bookmarks', require('./routes/bookmarkRoutes'));
 app.use('/api/map', require('./routes/mapRoutes'));
 app.use('/api/user', require('./routes/userRoutes'));
+app.use('/api/chat', require('./routes/chatRoutes'));
 
 // Test route
 app.get('/api', (req, res) => {

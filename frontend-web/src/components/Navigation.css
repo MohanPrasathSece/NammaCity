@@ -36,12 +36,13 @@
 
 .nav-item.active .nav-icon {
   color: var(--primary);
-  background-color: var(--primary-light);
+  background-color: rgba(255, 103, 0, 0.1);
   border-radius: 999px;
   padding: 4px 16px;
 }
 
 .nav-icon {
+  color: var(--text-secondary);
   margin-bottom: 2px;
   transition: all 0.2s ease-in-out;
   padding: 4px 16px;

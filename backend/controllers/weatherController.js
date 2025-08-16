@@ -1,7 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const axios = require('axios');
 
-const WEATHER_API_KEY = 'e725cfaf29f260f6f0b9cb4393c43520';
+const WEATHER_API_KEY = process.env.OPENWEATHER_API_KEY;
 const COIMBATORE_COORDS = { lat: 11.0168, lon: 76.9558 };
 
 // Mock weather data for Coimbatore (fallback)
@@ -164,16 +164,43 @@ exports.getCurrentWeather = asyncHandler(async (req, res) => {
 // @route   GET /api/weather/forecast
 // @access  Public
 exports.getWeatherForecast = asyncHandler(async (req, res) => {
-  const { days = 3 } = req.query;
-  
-  const forecast = mockWeatherData.forecast.slice(0, parseInt(days));
-  
-  res.json({
-    success: true,
-    data: {
-      location: mockWeatherData.location,
-      forecast,
-      lastUpdated: new Date().toISOString()
-    }
-  });
+  const { lat = COIMBATORE_COORDS.lat, lon = COIMBATORE_COORDS.lon } = req.query;
+
+  if (!WEATHER_API_KEY) {
+    console.error('Weather API key is missing.');
+    return res.status(500).json({ message: 'Weather service is not configured.' });
+  }
+
+  try {
+    const response = await axios.get(
+      `https://api.openweathermap.org/data/2.5/onecall?lat=${lat}&lon=${lon}&exclude=current,minutely,hourly,alerts&appid=${WEATHER_API_KEY}&units=metric`
+    );
+
+    const data = response.data;
+
+    const forecastData = data.daily.slice(0, 7).map(day => ({
+      date: new Date(day.dt * 1000).toISOString().split('T')[0],
+      high: Math.round(day.temp.max),
+      low: Math.round(day.temp.min),
+      condition: day.weather[0].description,
+      icon: `http://openweathermap.org/img/wn/${day.weather[0].icon}@2x.png`,
+      chanceOfRain: Math.round(day.pop * 100)
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        location: {
+          lat: data.lat,
+          lon: data.lon,
+          timezone: data.timezone
+        },
+        forecast: forecastData,
+        lastUpdated: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('OpenWeatherMap API Error (Forecast):', error.message);
+    res.status(500).json({ message: 'Failed to fetch weather forecast.' });
+  }
 });
