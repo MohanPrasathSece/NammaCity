@@ -42,6 +42,11 @@ const userSchema = new mongoose.Schema({
       pincode: String
     }
   },
+  // Additional fields for profile editing
+  fullName: {
+    type: String,
+    trim: true
+  },
   preferences: {
     language: {
       type: String,

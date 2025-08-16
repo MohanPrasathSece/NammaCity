@@ -11,14 +11,19 @@ import HomePage from './pages/HomePage.jsx';
 import PrivateRoute from './components/PrivateRoute.jsx';
 import PWAInstall from './components/PWAInstall.jsx';
 import Navigation from './components/Navigation.jsx';
+import LocationPermission from './components/LocationPermission.jsx';
+import WelcomeScreen from './components/WelcomeScreen.jsx';
+import { LocationProvider, useLocation as useLocationContext } from './context/LocationContext.jsx';
 
-export default function App() {
+function AppContent() {
   const location = useLocation();
-  const showNavigation = !['/login', '/register'].includes(location.pathname);
+  const { showLocationPermission, handleLocationAllow, handleLocationDeny } = useLocationContext();
+  const showNavigation = !['/login', '/register', '/welcome'].includes(location.pathname);
 
   return (
     <>
       <Routes>
+        <Route path="/welcome" element={<WelcomeScreen />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
@@ -70,10 +75,34 @@ export default function App() {
             </PrivateRoute>
           }
         />
-        <Route path="/" element={<Navigate to="/home" />} />
+        <Route
+          path="/dashboard"
+          element={
+            <PrivateRoute>
+              <HomePage />
+            </PrivateRoute>
+          }
+        />
+        <Route path="/" element={<Navigate to="/welcome" />} />
       </Routes>
       {showNavigation && <Navigation />}
       <PWAInstall />
+      
+      {/* Location Permission Overlay */}
+      {showLocationPermission && (
+        <LocationPermission
+          onAllow={handleLocationAllow}
+          onDeny={handleLocationDeny}
+        />
+      )}
     </>
+  );
+}
+
+export default function App() {
+  return (
+    <LocationProvider>
+      <AppContent />
+    </LocationProvider>
   );
 }

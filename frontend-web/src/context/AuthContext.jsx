@@ -27,10 +27,14 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('ua-user');
   };
 
-  
+  const updateUser = (updatedUserData) => {
+    const newUserData = { ...user, ...updatedUserData };
+    setUser(newUserData);
+    localStorage.setItem('ua-user', JSON.stringify(newUserData));
+  };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, register }}>
+    <AuthContext.Provider value={{ user, login, logout, register, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
