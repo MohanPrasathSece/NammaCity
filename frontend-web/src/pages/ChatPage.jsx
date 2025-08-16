@@ -17,11 +17,13 @@ export default function ChatPage() {
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
     try {
-      const res = await chatAPI.sendMessage?.(input) || { data: { reply: 'This is a mock reply 👍' } };
-      const aiMsg = { sender: 'ai', text: res.data?.reply || res.reply || res };
+      const res = await chatAPI.sendMessage(input, messages);
+      const aiMsg = { sender: 'ai', text: res.reply };
       setMessages((prev) => [...prev, aiMsg]);
     } catch (err) {
-      setMessages((prev) => [...prev, { sender: 'ai', text: err.message }]);
+      console.error('Chatbot API Error:', err);
+      const errorMessage = err.message || 'Sorry, I am having trouble connecting. Please try again later.';
+      setMessages((prev) => [...prev, { sender: 'ai', text: errorMessage }]);
     }
   };
 
@@ -38,9 +40,12 @@ export default function ChatPage() {
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask me anything…"
+          onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+          placeholder="Ask anything..."
         />
-        <button onClick={sendMessage}>Send</button>
+        <button onClick={sendMessage} className="send-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </button>
       </div>
     </div>
   );

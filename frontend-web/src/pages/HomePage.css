@@ -38,12 +38,13 @@ body {
 
 .app-title {
   font-family: 'Poppins', sans-serif;
-  font-size: 7rem;
+  font-size: 8rem; /* Increased from 7rem */
   font-weight: 900;
   margin: 0 0 0.1rem;
   color: var(--primary-color);
   letter-spacing: -1px;
   line-height: 1.1;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .welcome-text {

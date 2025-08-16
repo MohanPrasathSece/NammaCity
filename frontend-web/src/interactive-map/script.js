@@ -60,7 +60,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Handle location error, e.g., user denies permission.
     function onLocationError(e) {
-        alert("Could not access your location. Please enable location services in your browser settings. Defaulting to a central location.");
+        console.error('Location error:', e); // Log the full error object for debugging
+        alert(`Could not access your location: ${e.message}. Please check browser permissions and ensure you are on a secure (HTTPS) connection. Defaulting to a central location.`);
         // You can set a default view if location is denied
         map.setView([11.0168, 76.9558], 13);
     }

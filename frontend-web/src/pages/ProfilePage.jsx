@@ -119,11 +119,12 @@ export default function ProfilePage() {
         </button>
       </div>
 
-      {/* Profile Image Section */}
-      <div className="profile-image-section">
+      <div className="profile-content-wrapper">
+        {/* Profile Image Section */}
+        <div className="profile-image-section">
         <div className="profile-image-container">
           <img 
-            src="/default-profile.svg" 
+            src={profileImage || '/default-profile.svg'} 
             alt="Profile" 
             className="profile-image"
           />
@@ -207,8 +208,9 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
+      </div>
 
-      {/* Action Buttons */}
+      {/* Action Buttons */} 
       <div className="profile-actions">
         {isEditing ? (
           <div className="edit-actions">

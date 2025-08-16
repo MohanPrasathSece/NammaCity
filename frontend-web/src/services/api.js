@@ -96,7 +96,46 @@ export const weatherAPI = {
 };
 
 export const chatAPI = {
-  sendMessage: (message, history) => api.post('/chat', { message, history }),
+  sendMessage: async (msg, history) => {
+    const HUGGINGFACE_TOKEN = process.env.REACT_APP_HUGGINGFACE_TOKEN;
+    if (!HUGGINGFACE_TOKEN) {
+      throw new Error('Hugging Face token is not configured. Please check your .env file and restart the server.');
+    }
+
+    const API_URL = 'https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium';
+    const PROXY_URL = 'https://cors.eu.org/';
+
+    const past_user_inputs = history.filter(m => m.sender === 'user').map(m => m.text);
+    const generated_responses = history.filter(m => m.sender === 'ai').map(m => m.text);
+
+    const payload = {
+      inputs: {
+        past_user_inputs,
+        generated_responses,
+        text: msg,
+      },
+      options: {
+        wait_for_model: true,
+      },
+    };
+
+    const response = await fetch(PROXY_URL + API_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${HUGGINGFACE_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to get response from Hugging Face API.');
+    }
+
+    return { reply: data.generated_text };
+  },
 };
 
 
