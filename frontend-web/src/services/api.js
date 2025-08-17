@@ -79,15 +79,6 @@ export const bookingAPI = {
   updateStatus: (id, status) => api.put(`/bookings/${id}/status`, { status })
 };
 
-// Review endpoints
-export const reviewAPI = {
-  create: (data) => api.post('/reviews', data),
-  getServiceReviews: (serviceId, params = {}) => api.get(`/reviews/service/${serviceId}`, { params }),
-  getMyReviews: (params = {}) => api.get('/reviews/my-reviews', { params }),
-  update: (id, data) => api.put(`/reviews/${id}`, data),
-  delete: (id) => api.delete(`/reviews/${id}`),
-  markHelpful: (id) => api.post(`/reviews/${id}/helpful`)
-};
 
 // Weather endpoints
 export const weatherAPI = {
@@ -100,12 +91,7 @@ export const chatAPI = {
 };
 
 
-export const journalAPI = {
-  getEntries: () => api.get('/journals/my'),
-  createEntry: (entry) => api.post('/journals', entry),
-  updateEntry: (id, entry) => api.put(`/journals/${id}`, entry),
-  deleteEntry: (id) => api.delete(`/journals/${id}`),
-};
+
 
 export const userAPI = {
   getProfile: () => api.get('/user/profile'),

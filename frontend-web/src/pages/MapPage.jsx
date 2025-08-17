@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import RoutingMachine from '../components/RoutingMachine';
+import LocationLoader from '../components/LocationLoader';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
@@ -281,12 +282,16 @@ const MapPage = () => {
     // --- FETCH DATA (SIMULATED) ---
     useEffect(() => {
         const mockLocations = [
-            { id: 1, category: 'food', lat: 11.0274, lng: 76.9716, name: 'Annapoorna Canteen', photoUrl: 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=400&h=300&fit=crop', description: 'Hot, nutritious meals for lunch.', timing: '12:00 PM - 2:00 PM', activeDays: 'Mon-Sat', isFree: true },
-            { id: 2, category: 'food', lat: 11.0055, lng: 76.9667, name: 'Community Kitchen', photoUrl: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=300&fit=crop', description: 'Evening meals for everyone.', timing: '7:00 PM - 8:30 PM', activeDays: 'All Days', isFree: true },
-            { id: 3, category: 'shelter', lat: 11.0182, lng: 76.9615, name: 'Railway Station Night Shelter', photoUrl: 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=400&h=300&fit=crop', description: 'Safe overnight stay for travelers.', timing: '9:00 PM - 6:00 AM', activeDays: 'All Days', isFree: true },
-            { id: 4, category: 'shelter', lat: 10.9950, lng: 76.9450, name: 'Ukkadam Bus Stand Shelter', photoUrl: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=400&h=300&fit=crop', description: 'Temporary shelter for women and children.', timing: '24 Hours', activeDays: 'All Days', isFree: true },
-            { id: 5, category: 'restZone', lat: 11.0040, lng: 76.9600, name: 'VOC Park', photoUrl: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=300&fit=crop', description: 'Peaceful park benches to rest.', timing: '6:00 AM - 8:00 PM', activeDays: 'All Days', isFree: true },
-            { id: 6, category: 'restroom', lat: 11.0145, lng: 76.9588, name: 'Town Hall Public Toilet', photoUrl: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=400&h=300&fit=crop', description: 'Clean and accessible public facilities.', timing: '24 Hours', activeDays: 'All Days', isFree: false },
+            { id: 1, category: 'food', lat: 11.0274, lng: 76.9716, name: 'Annapoorna Canteen', photoUrl: 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=400&h=300&fit=crop', description: 'Hot, nutritious meals for lunch.', timing: '12:00 PM - 2:00 PM', activeDays: 'Mon-Sat', isFree: true, address: '123 Gandhipuram, Coimbatore' },
+            { id: 2, category: 'food', lat: 11.0055, lng: 76.9667, name: 'Community Kitchen', photoUrl: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=300&fit=crop', description: 'Evening meals for everyone.', timing: '7:00 PM - 8:30 PM', activeDays: 'All Days', isFree: true, address: '456 R.S. Puram, Coimbatore' },
+            { id: 7, category: 'food', lat: 11.0193, lng: 76.9565, name: 'Amma Canteen', photoUrl: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop', description: 'Subsidized meals for all.', timing: '6:00 AM - 10:00 AM, 12:00 PM - 3:00 PM, 7:00 PM - 9:00 PM', activeDays: 'All Days', isFree: false, address: 'Near Gandhipuram Bus Stand, Coimbatore' },
+            { id: 8, category: 'food', lat: 11.0135, lng: 76.9634, name: 'Sevai Kendra', photoUrl: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&h=300&fit=crop', description: 'Breakfast and lunch served daily.', timing: '7:00 AM - 2:00 PM', activeDays: 'All Days', isFree: true, address: 'Opposite Town Hall, Coimbatore' },
+            { id: 9, category: 'food', lat: 10.9987, lng: 76.9512, name: 'Ukkadam Food Bank', photoUrl: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400&h=300&fit=crop', description: 'Free meals and groceries for those in need.', timing: '11:00 AM - 2:00 PM, 6:00 PM - 8:00 PM', activeDays: 'All Days', isFree: true, address: 'Near Ukkadam Bus Stand, Coimbatore' },
+            { id: 10, category: 'food', lat: 11.0356, lng: 76.9789, name: 'Railway Station Food Counter', photoUrl: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop', description: '24/7 food service for travelers.', timing: '24 Hours', activeDays: 'All Days', isFree: false, address: 'Coimbatore Junction Railway Station' },
+            { id: 3, category: 'shelter', lat: 11.0182, lng: 76.9615, name: 'Railway Station Night Shelter', photoUrl: 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=400&h=300&fit=crop', description: 'Safe overnight stay for travelers.', timing: '9:00 PM - 6:00 AM', activeDays: 'All Days', isFree: true, address: 'Near Coimbatore Junction Railway Station' },
+            { id: 4, category: 'shelter', lat: 10.9950, lng: 76.9450, name: 'Ukkadam Bus Stand Shelter', photoUrl: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=400&h=300&fit=crop', description: 'Temporary shelter for women and children.', timing: '24 Hours', activeDays: 'All Days', isFree: true, address: 'Ukkadam Bus Stand, Coimbatore' },
+            { id: 5, category: 'restZone', lat: 11.0040, lng: 76.9600, name: 'VOC Park', photoUrl: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=300&fit=crop', description: 'Peaceful park benches to rest.', timing: '6:00 AM - 8:00 PM', activeDays: 'All Days', isFree: true, address: 'VOC Park, Coimbatore' },
+            { id: 6, category: 'restroom', lat: 11.0145, lng: 76.9588, name: 'Town Hall Public Toilet', photoUrl: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=400&h=300&fit=crop', description: 'Clean and accessible public facilities.', timing: '24 Hours', activeDays: 'All Days', isFree: false, address: 'Near Town Hall, Coimbatore' },
         ];
         setAllLocations(mockLocations);
     }, []);
@@ -340,10 +345,10 @@ const MapPage = () => {
 
     // Set initial category from URL
     useEffect(() => {
-        if (categoryFromUrl && ['food', 'shelter', 'restZone', 'restroom'].includes(categoryFromUrl)) {
+        if (categoryFromUrl && ['food', 'shelter', 'restZone', 'restroom'].includes(categoryFromUrl) && allLocations.length > 0 && mapRef.current) {
             handleCategoryClick(categoryFromUrl);
         }
-    }, [categoryFromUrl]);
+    }, [categoryFromUrl, allLocations, mapRef.current]);
 
     // Cleanup map instance on component unmount
     useEffect(() => {
@@ -646,7 +651,6 @@ const MapPage = () => {
         }
     };
 
-    const handleAddReviewClick = (id) => alert(`Review form for location ID: ${id}`);
 
     const handleOpenInGoogleMaps = (lat, lng) => {
         const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
@@ -715,13 +719,7 @@ const MapPage = () => {
 
 
     if (!userLocation) {
-        return (
-            <div className="loading-overlay">
-                <div className="loading-spinner"></div>
-                <h2>{isNavigating ? 'Restoring navigation...' : 'Detecting your location...'}</h2>
-                <p>Getting your current GPS position</p>
-            </div>
-        );
+        return <LocationLoader />;
     }
 
     return (
@@ -856,19 +854,19 @@ const MapPage = () => {
                         </div>
                         <p className="sheet-description">{selectedLocation.description}</p>
                         <div className="sheet-info">
-    <p><strong>Timings:</strong> {selectedLocation.timing || 'Not available'}</p>
-    <p><strong>Open:</strong> {selectedLocation.activeDays || 'Not available'}</p>
-</div>
-                        {/* The empty box was here and has been removed */}
+                            <p><strong>Timings:</strong> {selectedLocation.timing || 'Not available'}</p>
+                            <p><strong>Open:</strong> {selectedLocation.activeDays || 'Not available'}</p>
+                        </div>
                         <div className="sheet-actions-row">
                             <button className="nav-button" onClick={() => handleNavigateClick(selectedLocation)}>Navigate &rarr;</button>
-                            <button className="review-button" onClick={() => handleAddReviewClick(selectedLocation.id)}>Add Review</button>
                         </div>
                     </div>
                 </div>
             )}
+
         </div>
     );
 };
+
 
 export default MapPage;

@@ -1,6 +1,5 @@
 const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
-const Journal = require('../models/Journal');
 const Bookmark = require('../models/Bookmark');
 const multer = require('multer');
 const path = require('path');
@@ -196,13 +195,10 @@ exports.deleteProfileImage = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc    Get quick stats (journal, bookmarks)
+// @desc    Get quick stats (bookmarks)
 // @route   GET /api/user/stats
 // @access  Private
 exports.getStats = asyncHandler(async (req, res) => {
-  const [entries, bookmarks] = await Promise.all([
-    Journal.countDocuments({ user: req.user._id }),
-    Bookmark.countDocuments({ user: req.user._id })
-  ]);
-  res.json({ success: true, data: { entries, bookmarks } });
+  const bookmarks = await Bookmark.countDocuments({ user: req.user._id });
+  res.json({ success: true, data: { bookmarks } });
 });

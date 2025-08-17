@@ -3,7 +3,6 @@ import LoginPage from './pages/LoginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 
 import MapPage from './pages/MapPage.jsx';
-import JournalPage from './pages/JournalPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
 import ChatPage from './pages/ChatPage.jsx';
 import HomePage from './pages/HomePage.jsx';
@@ -31,14 +30,6 @@ function AppContent() {
           element={
             <PrivateRoute>
               <MapPage />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/journal"
-          element={
-            <PrivateRoute>
-              <JournalPage />
             </PrivateRoute>
           }
         />
