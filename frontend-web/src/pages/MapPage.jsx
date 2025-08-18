@@ -55,6 +55,13 @@ const MapPage = () => {
     const navigationTimeoutRef = useRef(null);
     const [mapBearing, setMapBearing] = useState(0);
     const [isFollowingUser, setIsFollowingUser] = useState(false);
+    const mapKey = useRef(Date.now()); // Use ref for unique key
+
+    // Force map remount when container errors occur
+    const forceMapRemount = () => {
+        mapKey.current = Date.now();
+        setError(null);
+    };
 
     useEffect(() => {
         // Always try to get current precise location first
@@ -224,17 +231,21 @@ const MapPage = () => {
 
         setIsFollowingUser(true);
 
-        // Always center on the user's location with a smooth fly-to animation
-        mapRef.current.flyTo(userLocation, 16, {
-            animate: true,
-            duration: 1.5, // A slightly longer duration for a smoother effect
-        });
+        try {
+            // Always center on the user's location with a smooth fly-to animation
+            mapRef.current.flyTo(userLocation, 16, {
+                animate: true,
+                duration: 2, // Reduced from 1.5 seconds
+            });
 
-        // Ensure any residual rotation is cleared
-        const mapContainer = mapRef.current.getContainer();
-        if (mapContainer && mapContainer.style.transform !== 'rotate(0deg)') {
-            mapContainer.style.transform = 'rotate(0deg)';
-            mapContainer.style.transition = 'transform 0.5s ease-in-out';
+            // Ensure any residual rotation is cleared
+            const mapContainer = mapRef.current.getContainer();
+            if (mapContainer && mapContainer.style.transform !== 'rotate(0deg)') {
+                mapContainer.style.transform = 'rotate(0deg)';
+                mapContainer.style.transition = 'transform 0.3s ease-in-out'; // Faster transition
+            }
+        } catch (error) {
+            console.warn('Error recentering map:', error);
         }
     };
 
@@ -282,19 +293,480 @@ const MapPage = () => {
     // --- FETCH DATA (SIMULATED) ---
     useEffect(() => {
         const mockLocations = [
-            { id: 1, category: 'food', lat: 11.0274, lng: 76.9716, name: 'Annapoorna Canteen', photoUrl: 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=400&h=300&fit=crop', description: 'Hot, nutritious meals for lunch.', timing: '12:00 PM - 2:00 PM', activeDays: 'Mon-Sat', isFree: true, address: '123 Gandhipuram, Coimbatore' },
-            { id: 2, category: 'food', lat: 11.0055, lng: 76.9667, name: 'Community Kitchen', photoUrl: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=300&fit=crop', description: 'Evening meals for everyone.', timing: '7:00 PM - 8:30 PM', activeDays: 'All Days', isFree: true, address: '456 R.S. Puram, Coimbatore' },
-            { id: 7, category: 'food', lat: 11.0193, lng: 76.9565, name: 'Amma Canteen', photoUrl: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop', description: 'Subsidized meals for all.', timing: '6:00 AM - 10:00 AM, 12:00 PM - 3:00 PM, 7:00 PM - 9:00 PM', activeDays: 'All Days', isFree: false, address: 'Near Gandhipuram Bus Stand, Coimbatore' },
-            { id: 8, category: 'food', lat: 11.0135, lng: 76.9634, name: 'Sevai Kendra', photoUrl: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&h=300&fit=crop', description: 'Breakfast and lunch served daily.', timing: '7:00 AM - 2:00 PM', activeDays: 'All Days', isFree: true, address: 'Opposite Town Hall, Coimbatore' },
-            { id: 9, category: 'food', lat: 10.9987, lng: 76.9512, name: 'Ukkadam Food Bank', photoUrl: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400&h=300&fit=crop', description: 'Free meals and groceries for those in need.', timing: '11:00 AM - 2:00 PM, 6:00 PM - 8:00 PM', activeDays: 'All Days', isFree: true, address: 'Near Ukkadam Bus Stand, Coimbatore' },
-            { id: 10, category: 'food', lat: 11.0356, lng: 76.9789, name: 'Railway Station Food Counter', photoUrl: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop', description: '24/7 food service for travelers.', timing: '24 Hours', activeDays: 'All Days', isFree: false, address: 'Coimbatore Junction Railway Station' },
-            { id: 3, category: 'shelter', lat: 11.0182, lng: 76.9615, name: 'Railway Station Night Shelter', photoUrl: 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=400&h=300&fit=crop', description: 'Safe overnight stay for travelers.', timing: '9:00 PM - 6:00 AM', activeDays: 'All Days', isFree: true, address: 'Near Coimbatore Junction Railway Station' },
-            { id: 4, category: 'shelter', lat: 10.9950, lng: 76.9450, name: 'Ukkadam Bus Stand Shelter', photoUrl: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=400&h=300&fit=crop', description: 'Temporary shelter for women and children.', timing: '24 Hours', activeDays: 'All Days', isFree: true, address: 'Ukkadam Bus Stand, Coimbatore' },
-            { id: 5, category: 'restZone', lat: 11.0040, lng: 76.9600, name: 'VOC Park', photoUrl: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=300&fit=crop', description: 'Peaceful park benches to rest.', timing: '6:00 AM - 8:00 PM', activeDays: 'All Days', isFree: true, address: 'VOC Park, Coimbatore' },
-            { id: 6, category: 'restroom', lat: 11.0145, lng: 76.9588, name: 'Town Hall Public Toilet', photoUrl: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=400&h=300&fit=crop', description: 'Clean and accessible public facilities.', timing: '24 Hours', activeDays: 'All Days', isFree: false, address: 'Near Town Hall, Coimbatore' },
+            { 
+                id: 1, 
+                category: 'food', 
+                lat: 11.0274, 
+                lng: 76.9716, 
+                name: 'Annapoorna Canteen', 
+                photoUrls: ['https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=400&h=300&fit=crop'], 
+                description: 'Hot, nutritious meals for lunch.', 
+                timing: '12:00 PM - 2:00 PM', 
+                activeDays: 'Mon-Sat', 
+                isFree: true, 
+                address: '123 Gandhipuram, Coimbatore',
+                googleMapsQuery: 'Annapoorna Canteen Gandhipuram Coimbatore',
+                googleMapsLink: 'https://maps.google.com/maps?q=11.0274,76.9716',
+                amenities: ['Free Meals', 'Clean Water', 'Seating Area']
+            },
+            { 
+                id: 2, 
+                category: 'food', 
+                lat: 11.0055, 
+                lng: 76.9667, 
+                name: 'Community Kitchen', 
+                photoUrls: ['https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=300&fit=crop'], 
+                description: 'Evening meals for everyone.', 
+                timing: '7:00 PM - 8:30 PM', 
+                activeDays: 'All Days', 
+                isFree: true, 
+                address: '456 R.S. Puram, Coimbatore',
+                googleMapsQuery: 'Community Kitchen R.S. Puram Coimbatore',
+                googleMapsLink: 'https://maps.google.com/maps?q=11.0055,76.9667',
+                amenities: ['Free Meals', 'Takeaway Available']
+            },
+            { 
+                id: 3, 
+                category: 'shelter', 
+                lat: 11.0182, 
+                lng: 76.9615, 
+                name: 'Railway Station Night Shelter', 
+                photoUrls: ['https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=400&h=300&fit=crop'], 
+                description: 'Safe overnight stay for travelers.', 
+                timing: '9:00 PM - 6:00 AM', 
+                activeDays: 'All Days', 
+                isFree: true, 
+                address: 'Near Coimbatore Junction Railway Station',
+                googleMapsQuery: 'Coimbatore Junction Railway Station Night Shelter',
+                googleMapsLink: 'https://maps.google.com/maps?q=11.0182,76.9615',
+                amenities: ['Beds', 'Blankets', 'Security']
+            },
+            { 
+                id: 4, 
+                category: 'shelter', 
+                lat: 10.9950, 
+                lng: 76.9450, 
+                name: 'Ukkadam Bus Stand Shelter', 
+                photoUrls: ['https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=400&h=300&fit=crop'], 
+                description: 'Temporary shelter for women and children.', 
+                timing: '24 Hours', 
+                activeDays: 'All Days', 
+                isFree: true, 
+                address: 'Ukkadam Bus Stand, Coimbatore',
+                googleMapsQuery: 'Ukkadam Bus Stand Coimbatore',
+                googleMapsLink: 'https://maps.google.com/maps?q=10.9950,76.9450',
+                amenities: ['Women Only', 'Children Friendly', '24/7']
+            },
+            { 
+                id: 5, 
+                category: 'restZone', 
+                lat: 11.0040, 
+                lng: 76.9600, 
+                name: 'VOC Park', 
+                photoUrls: ['https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400&h=300&fit=crop'], 
+                description: 'Peaceful park benches to rest.', 
+                timing: '6:00 AM - 8:00 PM', 
+                activeDays: 'All Days', 
+                isFree: true, 
+                address: 'VOC Park, Coimbatore',
+                googleMapsQuery: 'VOC Park Coimbatore',
+                googleMapsLink: 'https://maps.google.com/maps?q=11.0040,76.9600',
+                amenities: ['Park Benches', 'Greenery', 'Public Space']
+            },
+            { 
+                id: 6, 
+                category: 'restroom', 
+                lat: 11.0145, 
+                lng: 76.9588, 
+                name: 'Town Hall Public Toilet', 
+                photoUrls: ['https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=400&h=300&fit=crop'], 
+                description: 'Clean and accessible public facilities.', 
+                timing: '24 Hours', 
+                activeDays: 'All Days', 
+                isFree: false, 
+                address: 'Near Town Hall, Coimbatore',
+                googleMapsQuery: 'Town Hall Coimbatore Public Toilet',
+                amenities: ['Clean Toilets', 'Water Supply', '24/7 Open']
+            },
+            { 
+                id: 7, 
+                category: 'food', 
+                lat: 11.0193, 
+                lng: 76.9565, 
+                name: 'Amma Canteen', 
+                photoUrls: ['https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop'], 
+                description: 'Subsidized meals for all.', 
+                timing: '6:00 AM - 10:00 AM, 12:00 PM - 3:00 PM, 7:00 PM - 9:00 PM', 
+                activeDays: 'All Days', 
+                isFree: false, 
+                address: 'Near Gandhipuram Bus Stand, Coimbatore',
+                googleMapsQuery: 'Amma Canteen Gandhipuram Bus Stand Coimbatore',
+                amenities: ['Low Price', 'Dine-in', 'Quick Service']
+            },
+            { 
+                id: 8, 
+                category: 'food', 
+                lat: 11.0135, 
+                lng: 76.9634, 
+                name: 'Sevai Kendra', 
+                photoUrls: ['https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&h=300&fit=crop'], 
+                description: 'Breakfast and lunch served daily.', 
+                timing: '7:00 AM - 2:00 PM', 
+                activeDays: 'All Days', 
+                isFree: true, 
+                address: 'Opposite Town Hall, Coimbatore',
+                googleMapsQuery: 'Sevai Kendra Town Hall Coimbatore',
+                amenities: ['Free Breakfast', 'Free Lunch']
+            },
+            { 
+                id: 9, 
+                category: 'food', 
+                lat: 10.9987, 
+                lng: 76.9512, 
+                name: 'Ukkadam Food Bank', 
+                photoUrls: ['https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400&h=300&fit=crop'], 
+                description: 'Free meals and groceries for those in need.', 
+                timing: '11:00 AM - 2:00 PM, 6:00 PM - 8:00 PM', 
+                activeDays: 'All Days', 
+                isFree: true, 
+                address: 'Near Ukkadam Bus Stand, Coimbatore',
+                googleMapsQuery: 'Ukkadam Food Bank Ukkadam Bus Stand Coimbatore',
+                amenities: ['Groceries', 'Free Meals']
+            },
+            { 
+                id: 10, 
+                category: 'food', 
+                lat: 11.0356, 
+                lng: 76.9789, 
+                name: 'Railway Station Food Counter', 
+                photoUrls: ['https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop'], 
+                description: '24/7 food service for travelers.', 
+                timing: '24 Hours', 
+                activeDays: 'All Days', 
+                isFree: false, 
+                address: 'Coimbatore Junction Railway Station',
+                googleMapsQuery: 'Coimbatore Junction Railway Station Food Court',
+                amenities: ['24/7 Open', 'Paid Food']
+            },
+            { 
+                id: 11, 
+                category: 'food', 
+                lat: 11.0089, 
+                lng: 76.9655, 
+                name: 'Shanthi Social Service', 
+                photoUrls: [
+                    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop',
+                    'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&h=300&fit=crop',
+                    'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400&h=300&fit=crop'
+                ], 
+                description: 'Low price nutritious meals for everyone. Special rates for students and elderly.', 
+                timing: '7:00 AM - 10:00 PM', 
+                activeDays: 'All Days', 
+                isFree: false, 
+                address: 'Singanallur, Coimbatore',
+                googleMapsQuery: 'Shanthi Social Service Singanallur Coimbatore',
+                priceRange: '₹10-30 per meal',
+                amenities: ['Low Price', 'Student Discount', 'Elderly Discount']
+            },
+            { 
+                id: 12, 
+                category: 'food', 
+                lat: 11.00342, 
+                lng: 77.03930, 
+                name: 'Shanthi Social Services Canteen', 
+                photoUrls: [
+                    '/images/shanthi-food-1.jpg',
+                    '/images/shanthi-food-2.jpg',
+                    '/images/shanthi-food-3.jpg'
+                ], 
+                description: 'Well-maintained community canteen serving affordable, hygienic South Indian meals.', 
+                timing: '7:00 AM – 9:15 PM', 
+                activeDays: 'All Days', 
+                isFree: false, 
+                googleMapsQuery: 'Shanthi Social Services Canteen Coimbatore',
+                amenities: ['Affordable Meals', 'Clean Dining Area', 'Free Parking']
+            },
+            { 
+                id: 13,
+                category: 'food',
+                lat: 11.02136,
+                lng: 76.99159,
+                name: 'Sumathi Memorial Trust – Low-Cost Meals',
+                photoUrls: [
+                    '/images/sumathi-meal-1.jpg',
+                    '/images/sumathi-meal-2.jpg',
+                    '/images/sumathi-meal-3.jpg'
+                ],
+                description: 'Serving sambar rice (₹3) and curd rice (₹5) to about 250 people daily at very nominal cost.',
+                timing: '12:00 PM - 3:00 PM',
+                activeDays: 'All Days',
+                isFree: false,
+                googleMapsQuery: 'Sumathi Memorial Trust Coimbatore Low Cost Meals',
+                amenities: ['Affordable Meals', 'Community Service', 'Quick Service']
+            },
+            { 
+                id: 14,
+                category: 'food',
+                lat: 10.97803,
+                lng: 76.73313,
+                name: 'Isha Yoga Center Bhiksha Hall (Annadanam)',
+                photoUrls: [
+                    '/images/isha-bhiksha-1.jpg',
+                    '/images/isha-bhiksha-2.jpg',
+                    '/images/isha-bhiksha-3.jpg'
+                ],
+                description: 'Sacred communal dining hall serving free sattvic meals twice daily in silence, for volunteers and guests at Isha Yoga Center.',
+                timing: 'Brunch: ~10:00–11:10 AM (3 batches)<br>Dinner: ~7:00–8:10 PM (3 batches)',
+                activeDays: 'All Days',
+                isFree: true,
+                googleMapsQuery: 'Isha Yoga Center Bhiksha Hall Coimbatore',
+                amenities: ['Free Sattvic Meals', 'Silent Dining', 'Volunteers & Guests']
+            },
+            { 
+                id: 15,
+                category: 'food',
+                lat: 11.0058,
+                lng: 76.9526,
+                name: 'Gurudwara Singh Sabha (R.S. Puram)',
+                photoUrls: [
+                    '/images/gurudwara-sabha-1.jpg',
+                    '/images/gurudwara-sabha-2.jpg',
+                    '/images/gurudwara-sabha-3.jpg'
+                ],
+                description: 'Coimbatore\'s only Sikh gurudwara offering langar (free community meal) every Sunday and on special auspicious days.',
+                timing: 'Langar served on Sundays and special days (timing varies)',
+                activeDays: 'Sundays & Special Days',
+                isFree: true,
+                googleMapsQuery: 'Gurudwara Singh Sabha R.S. Puram Coimbatore',
+                amenities: ['Langar Hall', 'Free Dispensary', 'Prayer Hall']
+            },
+            { 
+                id: 16,
+                category: 'food',
+                lat: 11.0115,
+                lng: 77.0300,
+                name: 'RVS Padmavathi Social Service Food Court',
+                photoUrls: [
+                    '/images/rvs-foodcourt-1.jpg',
+                    '/images/rvs-foodcourt-2.jpg',
+                    '/images/rvs-foodcourt-3.jpg'
+                ],
+                description: 'A campus-based vegetarian food court offering varied, affordable meals in a clean, cozy setting.',
+                timing: 'Lunch (typical campus hours) — exact hours not publicly listed',
+                activeDays: 'All Days (campus open days)',
+                isFree: false,
+                googleMapsQuery: 'RVS Padmavathi Social Service Food Court Coimbatore',
+                amenities: ['Budget-friendly meals', 'Cozy atmosphere', 'Vegetarian only']
+            },
+            { 
+                id: 17,
+                category: 'food',
+                lat: 10.9971,
+                lng: 76.9625,
+                name: 'Shanthi Social Services Canteen – Kuniyamuthur',
+                photoUrls: [
+                    '/images/shanthi-kuniyamuthur-1.jpg',
+                    '/images/shanthi-kuniyamuthur-2.jpg',
+                    '/images/shanthi-kuniyamuthur-3.jpg'
+                ],
+                description: 'A hygienic, budget-friendly vegetarian canteen serving South Indian items like dosa, idli, lemon rice & buns at very low prices.',
+                timing: '6:00 AM – 7:00 PM',
+                activeDays: 'All Days',
+                isFree: false,
+                amenities: ['Budget Meals', 'Takeaway', 'Plenty of Parking']
+            },
+            { 
+                id: 18,
+                category: 'food',
+                lat: 10.96680,
+                lng: 76.96880,
+                name: 'Jeeva Shanthy Trust – Anaiyaa Aduppu Community Kitchen',
+                photoUrls: [
+                    '/images/jeeva-shanthy-1.jpg',
+                    '/images/jeeva-shanthy-2.jpg',
+                    '/images/jeeva-shanthy-3.jpg'
+                ],
+                description: 'Community kitchen serving daily meals for needy families at very low cost in Coimbatore outskirts.',
+                timing: '12:00 PM - 2:00 PM & 7:00 PM - 8:30 PM',
+                activeDays: 'All Days',
+                isFree: false,
+                amenities: ['Community Meals', 'Affordable', 'Hygienic']
+            },
+            { 
+                id: 19,
+                category: 'food',
+                lat: 10.97840,
+                lng: 76.76010,
+                name: 'Sri Ramakrishna Mission – Canteen & Annadanam',
+                photoUrls: [
+                    '/images/ramakrishna-1.jpg',
+                    '/images/ramakrishna-2.jpg',
+                    '/images/ramakrishna-3.jpg'
+                ],
+                description: 'Serving free meals to devotees, volunteers, and students as part of their annadanam program.',
+                timing: 'Breakfast: 7:00 AM – 9:00 AM<br>Lunch: 12:00 PM – 2:00 PM',
+                activeDays: 'All Days',
+                isFree: true,
+                amenities: ['Free Meals', 'Clean Hall', 'Spiritual Ambience']
+            },
+            { 
+                id: 20,
+                category: 'food',
+                lat: 10.97540,
+                lng: 76.75650,
+                name: 'Isha Yoga Center – Annadanam Evening',
+                photoUrls: [
+                    '/images/isha-evening-1.jpg',
+                    '/images/isha-evening-2.jpg',
+                    '/images/isha-evening-3.jpg'
+                ],
+                description: 'Evening sattvic meal served to all volunteers & visitors.',
+                timing: 'Dinner: ~7:00–8:00 PM',
+                activeDays: 'All Days',
+                isFree: true,
+                amenities: ['Free Meals', 'Peaceful Environment']
+            },
+            { 
+                id: 21,
+                category: 'food',
+                lat: 11.01540,
+                lng: 76.97650,
+                name: 'Annadanam Center – R.S. Puram',
+                photoUrls: [
+                    '/images/annadanam-rsp-1.jpg',
+                    '/images/annadanam-rsp-2.jpg',
+                    '/images/annadanam-rsp-3.jpg'
+                ],
+                description: 'Serving low-cost, nutritious meals for workers and students.',
+                timing: '12:00 PM – 2:00 PM',
+                activeDays: 'All Days',
+                isFree: false,
+                amenities: ['Affordable Meals', 'Quick Service']
+            },
+            { 
+                id: 22,
+                category: 'food',
+                lat: 11.02560,
+                lng: 76.98760,
+                name: 'Sevai Center – Coimbatore South',
+                photoUrls: [
+                    '/images/sevai-south-1.jpg',
+                    '/images/sevai-south-2.jpg',
+                    '/images/sevai-south-3.jpg'
+                ],
+                description: 'Free or low-cost meal center for low-income families.',
+                timing: 'Breakfast: 7:00 AM – 10:00 AM<br>Lunch: 12:00 PM – 2:00 PM',
+                activeDays: 'All Days',
+                isFree: true,
+                amenities: ['Free Meals', 'Community Service']
+            },
+            { 
+                id: 23,
+                category: 'food',
+                lat: 11.02840,
+                lng: 76.99100,
+                name: 'Melodic Trust – Free Meals', 
+                photoUrls: [
+                    '/images/melodic-1.jpg',
+                    '/images/melodic-2.jpg',
+                    '/images/melodic-3.jpg'
+                ],
+                description: 'Nonprofit organization serving free meals to street children and elderly.', 
+                timing: '8:00 AM – 10:00 AM & 6:00 PM – 8:00 PM',
+                activeDays: 'All Days',
+                isFree: true,
+                amenities: ['Free Meals', 'Street Children Focus', 'Elderly Friendly']
+            },
+            { 
+                id: 24,
+                category: 'food',
+                lat: 11.02010,
+                lng: 76.98210,
+                name: 'Sri Annadanam Canteen – Gandhipuram', 
+                photoUrls: [
+                    '/images/annadanam-gandhi-1.jpg',
+                    '/images/annadanam-gandhi-2.jpg',
+                    '/images/annadanam-gandhi-3.jpg'
+                ],
+                description: 'Affordable meals for the general public, mainly rice-based South Indian items.', 
+                timing: '12:00 PM – 2:00 PM & 7:00 PM – 8:30 PM',
+                activeDays: 'All Days',
+                isFree: false,
+                amenities: ['Affordable Meals', 'Clean Environment']
+            },
+            { 
+                id: 25,
+                category: 'food',
+                lat: 11.01800,
+                lng: 76.97900,
+                name: 'Sumathi Trust – Evening Meals', 
+                photoUrls: [
+                    '/images/sumathi-evening-1.jpg',
+                    '/images/sumathi-evening-2.jpg',
+                    '/images/sumathi-evening-3.jpg'
+                ],
+                description: 'Evening meals at nominal cost for low-income families.', 
+                timing: '6:00 PM – 8:00 PM',
+                activeDays: 'All Days',
+                isFree: false,
+                amenities: ['Affordable Meals', 'Community Oriented']
+            },
+            { 
+                id: 26,
+                category: 'food',
+                lat: 11.01520,
+                lng: 76.97750,
+                name: 'Ramakrishna Mission – Lunch & Dinner', 
+                photoUrls: [
+                    '/images/ramakrishna-lunch-1.jpg',
+                    '/images/ramakrishna-lunch-2.jpg',
+                    '/images/ramakrishna-lunch-3.jpg'
+                ],
+                description: 'Free meals for devotees, volunteers & students.', 
+                timing: 'Lunch: 12:00 PM – 2:00 PM<br>Dinner: 7:00 PM – 8:00 PM',
+                activeDays: 'All Days',
+                isFree: true,
+                amenities: ['Free Meals', 'Clean Hall']
+            },
+            { 
+                id: 27,
+                category: 'food',
+                lat: 11.01900,
+                lng: 76.98000,
+                name: 'Sri Annadanam Trust – Free Meal Center', 
+                photoUrls: [
+                    '/images/annadanam-trust-1.jpg',
+                    '/images/annadanam-trust-2.jpg',
+                    '/images/annadanam-trust-3.jpg'
+                ],
+                description: 'Serving meals free of cost to the needy every day.', 
+                timing: '11:00 AM – 1:00 PM & 6:00 PM – 8:00 PM',
+                activeDays: 'All Days',
+                isFree: true,
+                amenities: ['Free Meals', 'Community Focused']
+            },
+            { 
+                id: 28,
+                category: 'food',
+                lat: 11.02150,
+                lng: 76.98300,
+                name: 'Melodia – Free Food Outreach', 
+                photoUrls: [
+                    '/images/melodia-1.jpg',
+                    '/images/melodia-2.jpg',
+                    '/images/melodia-3.jpg'
+                ],
+                description: 'Food outreach program serving meals to street children and underprivileged families.', 
+                timing: '8:00 AM – 10:00 AM & 5:00 PM – 7:00 PM',
+                activeDays: 'All Days',
+                isFree: true,
+                amenities: ['Free Meals', 'Community Service']
+            }
         ];
+    
         setAllLocations(mockLocations);
     }, []);
+    
 
     // --- SAVE NAVIGATION STATE WHENEVER IT CHANGES ---
     useEffect(() => {
@@ -652,67 +1124,53 @@ const MapPage = () => {
     };
 
 
-    const handleOpenInGoogleMaps = (lat, lng) => {
-        const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+    const handleOpenInGoogleMaps = (location) => {
+        // Use direct googleMapsLink if available, otherwise use search query
+        const url = location.googleMapsLink || 
+                   `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.googleMapsQuery || (location.name + ", Coimbatore"))}`;
         window.open(url, '_blank');
     };
 
     const handleCategoryClick = (category) => {
         setActiveCategory(category);
         
-        // Update URL with the selected category
-        const searchParams = new URLSearchParams(window.location.search);
         if (category === 'all') {
-            searchParams.delete('category');
-        } else {
-            searchParams.set('category', category);
-        }
-        window.history.pushState({}, '', `${window.location.pathname}?${searchParams.toString()}`);
-        
-        if (!mapRef.current) return; // Prevent crash if map is not ready
-
-        const getZoomOptions = (count) => {
-            if (count === 0) return { zoom: 12 };
-            if (count === 1) return { zoom: 14 };
-            if (count <= 3) return { padding: [100, 100], maxZoom: 14 };
-            return { padding: [60, 60], maxZoom: 14 };
-        };
-
-        if (category === 'all') {
-            // Show all locations by fitting bounds to include all places
-            if (allLocations.length > 0) {
-                const bounds = L.latLngBounds(allLocations.map(loc => [loc.lat, loc.lng]));
-                const options = getZoomOptions(allLocations.length);
-                mapRef.current.flyToBounds(bounds, {
-                    ...options,
-                    duration: 1, // Slightly faster animation
-                    easeLinearity: 0.5,
-                    paddingTopLeft: [20, 20],
-                    paddingBottomRight: [20, 80] // Extra space at bottom for UI elements
-                });
-            } else if (userLocation) {
-                // Fallback to user location if no places available
-                mapRef.current.flyTo(userLocation, 14);
+            // Show all locations - zoom to fit all markers
+            if (allLocations.length > 0 && mapRef.current) {
+                try {
+                    const group = new L.featureGroup(
+                        allLocations.map(loc => L.marker([loc.lat, loc.lng]))
+                    );
+                    if (group.getBounds().isValid()) {
+                        mapRef.current.fitBounds(group.getBounds(), { padding: [20, 20] });
+                    }
+                } catch (error) {
+                    console.warn('Error fitting bounds for all locations:', error);
+                    // Fallback to user location
+                    if (userLocation && mapRef.current) {
+                        mapRef.current.setView([userLocation.lat, userLocation.lng], 13);
+                    }
+                }
             }
-            return;
-        }
-
-        const categoryLocations = allLocations.filter(loc => loc.category === category);
-        if (categoryLocations.length > 0) {
-            const bounds = L.latLngBounds(categoryLocations.map(loc => [loc.lat, loc.lng]));
-            const options = getZoomOptions(categoryLocations.length);
-            
-            // Add a small buffer to the bounds for better visibility
-            bounds.pad(0.05);
-            
-            mapRef.current.flyToBounds(bounds, {
-                ...options,
-                duration: 1,
-                easeLinearity: 0.5,
-                paddingTopLeft: [20, 20],
-                paddingBottomRight: [20, 80],
-                animate: true
-            });
+        } else {
+            // Filter and show specific category
+            const categoryLocations = allLocations.filter(loc => loc.category === category);
+            if (categoryLocations.length > 0 && mapRef.current) {
+                try {
+                    const group = new L.featureGroup(
+                        categoryLocations.map(loc => L.marker([loc.lat, loc.lng]))
+                    );
+                    if (group.getBounds().isValid()) {
+                        mapRef.current.fitBounds(group.getBounds(), { padding: [20, 20] });
+                    }
+                } catch (error) {
+                    console.warn('Error fitting bounds for category:', error);
+                    // Fallback to user location
+                    if (userLocation && mapRef.current) {
+                        mapRef.current.setView([userLocation.lat, userLocation.lng], 13);
+                    }
+                }
+            }
         }
     };
 
@@ -725,6 +1183,7 @@ const MapPage = () => {
     return (
         <div className="map-page-container">
             <MapContainer 
+                key={mapKey.current} // Use ref value for unique key
                 ref={mapRef}
                 center={userLocation || [11.0168, 76.9558]} 
                 zoom={14} 
@@ -837,7 +1296,16 @@ const MapPage = () => {
                 <div className="location-detail-sheet">
                     <button className="close-sheet-button" onClick={() => setSelectedLocation(null)}>&times;</button>
                     <div className="sheet-content">
-                        <img src={selectedLocation.photoUrl} alt={selectedLocation.name} className="sheet-photo" />
+                        <div className="sheet-photos">
+                            {selectedLocation.photoUrls?.map((url, index) => (
+                                <img 
+                                    key={index} 
+                                    src={url} 
+                                    alt={`${selectedLocation.name} photo ${index + 1}`} 
+                                    className="sheet-photo"
+                                />
+                            ))}
+                        </div>
                         <div className="sheet-header">
                             <h3>{selectedLocation.name}</h3>
                             <div className="header-tags-row">
@@ -845,7 +1313,7 @@ const MapPage = () => {
                                 <button className="header-tag tag-distance" disabled>{userLocation ? `${(L.latLng(userLocation).distanceTo(L.latLng(selectedLocation.lat, selectedLocation.lng)) / 1000).toFixed(1)} km` : ''}</button>
                                 <button 
                                     className="header-tag tag-gmaps"
-                                    onClick={() => handleOpenInGoogleMaps(selectedLocation.lat, selectedLocation.lng)}
+                                    onClick={() => handleOpenInGoogleMaps(selectedLocation)}
                                     title="Open in Google Maps"
                                 >
                                     🗺️ Google Maps
@@ -856,9 +1324,21 @@ const MapPage = () => {
                         <div className="sheet-info">
                             <p><strong>Timings:</strong> {selectedLocation.timing || 'Not available'}</p>
                             <p><strong>Open:</strong> {selectedLocation.activeDays || 'Not available'}</p>
+                            {selectedLocation.priceRange && (
+                                <p><strong>Price:</strong> {selectedLocation.priceRange}</p>
+                            )}
                         </div>
+                        {selectedLocation.amenities && selectedLocation.amenities.length > 0 && (
+                            <div className="sheet-amenities">
+                                {selectedLocation.amenities.map((amenity, index) => (
+                                    <span key={index} className="amenity-tag">{amenity}</span>
+                                ))}
+                            </div>
+                        )}
                         <div className="sheet-actions-row">
-                            <button className="nav-button" onClick={() => handleNavigateClick(selectedLocation)}>Navigate &rarr;</button>
+                            <button className="sheet-action-button navigate-button" onClick={() => handleNavigateClick(selectedLocation)}>
+                                Navigate →
+                            </button>
                         </div>
                     </div>
                 </div>

@@ -751,32 +751,58 @@
     z-index: 2;
 }
 
+.sheet-photos {
+    display: flex;
+    overflow-x: scroll; /* Use scroll instead of auto */
+    overflow-y: hidden; /* Prevent vertical scroll */
+    gap: 8px;
+    padding: 2px 0 8px 0; /* Adjust padding */
+    margin-bottom: 8px;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    scrollbar-width: thin;
+    scrollbar-color: #ccc #f0f0f0;
+}
+
+.sheet-photos::-webkit-scrollbar {
+    height: 6px;
+}
+
+.sheet-photos::-webkit-scrollbar-track {
+    background: #f0f0f0;
+    border-radius: 3px;
+}
+
+.sheet-photos::-webkit-scrollbar-thumb {
+    background-color: #ccc;
+    border-radius: 3px;
+}
+
 .sheet-content {
     overflow-y: auto; /* Allows content to scroll if needed */
 }
 
 .sheet-photo {
-    width: 100%;
-    height: 160px; /* Further reduced height */
+    width: 280px; /* Use a fixed width */
+    height: 160px;
     object-fit: cover;
     border-radius: 8px;
-    margin-bottom: 8px; /* Standardized margin */
+    flex-shrink: 0;
 }
 
 .sheet-header {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px; /* Standardized gap */
+    gap: 8px;
     width: 100%;
-    margin-bottom: 8px; /* Standardized margin */
+    margin-bottom: 8px;
 }
 
 .sheet-header h3 {
     margin: 0;
     font-size: 1.3rem;
     line-height: 1.2;
-    color: #333; /* Ensure title is visible */
+    color: #333;
     font-weight: 700;
 }
 
@@ -828,7 +854,7 @@
 .sheet-description {
     font-size: 0.9rem;
     color: #555;
-    margin: 0 0 10px 0; /* Tightened margins */
+    margin: 0 0 10px 0;
     line-height: 1.4;
 }
 
@@ -836,7 +862,7 @@
     background-color: #f0f0f0;
     border-radius: 8px;
     padding: 8px 12px;
-    margin: 4px 0 12px 0; /* Fine-tuned margins */
+    margin: 4px 0 12px 0;
     font-size: 0.85rem;
     width: 100%;
     box-sizing: border-box;
@@ -855,13 +881,34 @@
 .sheet-actions-row {
     display: flex;
     gap: 10px;
-    margin-top: auto; /* Pushes actions to the bottom */
-    padding-top: 10px; /* Space above buttons */
+    margin-top: auto;
+    padding-top: 10px;
     width: 100%;
 }
 
+.sheet-action-button {
+    flex: 1;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.navigate-button {
+    background-color: #FF6700;
+    color: white;
+}
+
+.navigate-button:hover {
+    background-color: #e65c00;
+    transform: translateY(-1px);
+}
+
 .sheet-actions-row button {
-    flex: 1; /* Equal width buttons */
+    flex: 1;
 }
 
 /* Desktop-specific styles */
@@ -886,9 +933,6 @@
         }
     }
 }
-
-
-
 
 /* --- Turn-by-Turn Navigation Panel --- */
 .turn-by-turn-panel {
@@ -932,8 +976,6 @@
     color: var(--color-primary);
 }
 
-
-
 .route-summary {
     display: flex;
     justify-content: space-around;
@@ -967,7 +1009,7 @@
         width: 90%;
         max-height: 40vh;
         left: 5%;
-        right: -100%; /* Adjust for full-width slide-in */
+        right: -100%;
         top: auto;
         bottom: -100%;
         border-top-left-radius: 20px;
@@ -980,4 +1022,3 @@
         right: 5%;
     }
 }
-
