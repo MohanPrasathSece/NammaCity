@@ -4,7 +4,6 @@ require('dotenv').config();
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
-const bookingRoutes = require('./routes/bookingRoutes');
 const weatherRoutes = require('./routes/weatherRoutes');
 const { errorHandler } = require('./middleware/errorMiddleware');
 
@@ -38,7 +37,6 @@ app.use((req, res, next) => {
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/services', require('./routes/serviceRoutes'));
-app.use('/api/bookings', require('./routes/bookingRoutes'));
 app.use('/api/weather', require('./routes/weatherRoutes'));
 app.use('/api/map', require('./routes/mapRoutes'));
 app.use('/api/user', require('./routes/userRoutes'));

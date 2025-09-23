@@ -104,7 +104,6 @@ const serviceSchema = new mongoose.Schema({
   tags: [String],
   metadata: {
     views: { type: Number, default: 0 },
-    bookmarks: { type: Number, default: 0 },
     lastUpdated: { type: Date, default: Date.now }
   }
 }, {

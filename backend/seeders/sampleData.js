@@ -3,7 +3,6 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const Service = require('../models/Service');
 const Review = require('../models/Review');
-const Booking = require('../models/Booking');
 
 // Sample users
 const users = [
@@ -299,33 +298,6 @@ const reviews = [
   }
 ];
 
-// Sample bookings
-const bookings = [
-  {
-    bookingType: 'reservation',
-    scheduledDate: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
-    scheduledTime: '19:30',
-    partySize: 4,
-    specialRequests: 'Table near window, celebrating anniversary',
-    status: 'confirmed',
-    contactInfo: {
-      phone: '+91 9876543211',
-      email: 'rajesh@gmail.com'
-    }
-  },
-  {
-    bookingType: 'appointment',
-    scheduledDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // Day after tomorrow
-    scheduledTime: '10:00',
-    duration: 30,
-    specialRequests: 'General checkup and blood pressure monitoring',
-    status: 'pending',
-    contactInfo: {
-      phone: '+91 9876543212',
-      email: 'priya@gmail.com'
-    }
-  }
-];
 
 // Seed function
 const seedDatabase = async () => {
@@ -336,7 +308,6 @@ const seedDatabase = async () => {
     await User.deleteMany({});
     await Service.deleteMany({});
     await Review.deleteMany({});
-    await Booking.deleteMany({});
     console.log('✅ Cleared existing data');
 
     // Create users
@@ -366,14 +337,6 @@ const seedDatabase = async () => {
     const createdReviews = await Review.insertMany(reviewsWithRefs);
     console.log(`✅ Created ${createdReviews.length} reviews`);
 
-    // Create bookings
-    const bookingsWithRefs = bookings.map((booking, index) => ({
-      ...booking,
-      service: createdServices[index % createdServices.length]._id,
-      user: createdUsers[index % 2 + 1]._id // Regular users
-    }));
-    const createdBookings = await Booking.insertMany(bookingsWithRefs);
-    console.log(`✅ Created ${createdBookings.length} bookings`);
 
     // Update service ratings based on reviews
     for (const service of createdServices) {

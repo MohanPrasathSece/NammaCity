@@ -76,7 +76,10 @@ const MapPage = () => {
                     saveLastLocation(currentLocation);
                     
                     if (mapRef.current) {
-                        mapRef.current.flyTo([latitude, longitude], 15);
+                        mapRef.current.flyTo([latitude, longitude], 15, {
+                            animate: true,
+                            duration: 2.5
+                        });
                     }
                     console.log('🎯 Got current precise location');
                 },
@@ -89,7 +92,10 @@ const MapPage = () => {
                         console.log('📍 Using cached location as fallback');
                         setUserLocation(cachedLocation);
                         if (mapRef.current) {
-                            mapRef.current.flyTo([cachedLocation.lat, cachedLocation.lng], 15);
+                            mapRef.current.flyTo([cachedLocation.lat, cachedLocation.lng], 15, {
+                                animate: true,
+                                duration: 2.5
+                            });
                         }
                     } else {
                         // Only use default as absolute last resort
@@ -97,7 +103,10 @@ const MapPage = () => {
                         const defaultLocation = { lat: 11.0168, lng: 76.9558 };
                         setUserLocation(defaultLocation);
                         if (mapRef.current) {
-                            mapRef.current.flyTo([defaultLocation.lat, defaultLocation.lng], 15);
+                            mapRef.current.flyTo([defaultLocation.lat, defaultLocation.lng], 15, {
+                                animate: true,
+                                duration: 2.5
+                            });
                         }
                     }
                 },
@@ -232,10 +241,17 @@ const MapPage = () => {
         setIsFollowingUser(true);
 
         try {
+            // Check if map container is properly initialized
+            if (!mapRef.current._container) {
+                console.warn('Map container not ready, delaying recenter');
+                setTimeout(() => handleRecenterMap(), 100);
+                return;
+            }
+
             // Always center on the user's location with a smooth fly-to animation
             mapRef.current.flyTo(userLocation, 16, {
                 animate: true,
-                duration: 2, // Reduced from 1.5 seconds
+                duration: 3,
             });
 
             // Ensure any residual rotation is cleared
@@ -825,8 +841,18 @@ const MapPage = () => {
     // Cleanup map instance on component unmount
     useEffect(() => {
         return () => {
-            if (mapRef.current) {
-                mapRef.current.remove();
+            try {
+                if (mapRef.current) {
+                    // Clear any timeouts
+                    if (navigationTimeoutRef.current) {
+                        clearTimeout(navigationTimeoutRef.current);
+                    }
+                    
+                    // Reset map reference without calling remove() - React-Leaflet handles this
+                    mapRef.current = null;
+                }
+            } catch (error) {
+                console.warn('Map cleanup error:', error);
             }
         };
     }, []);
@@ -1105,7 +1131,7 @@ const MapPage = () => {
                     // Use flyTo instead of setView for better control
                     mapRef.current.flyTo(userLocation, 14, {
                         animate: true,
-                        duration: 1
+                        duration: 2.5
                     });
                     
                     // Explicitly prevent any rotation by ensuring the map container has no transform
@@ -1157,18 +1183,29 @@ const MapPage = () => {
             const categoryLocations = allLocations.filter(loc => loc.category === category);
             if (categoryLocations.length > 0 && mapRef.current) {
                 try {
-                    const group = new L.featureGroup(
-                        categoryLocations.map(loc => L.marker([loc.lat, loc.lng]))
-                    );
-                    if (group.getBounds().isValid()) {
-                        mapRef.current.fitBounds(group.getBounds(), { padding: [20, 20] });
-                    }
+                    // Add delay to ensure map is fully initialized
+                    setTimeout(() => {
+                        if (mapRef.current && mapRef.current._container) {
+                            const group = new L.featureGroup(
+                                categoryLocations.map(loc => L.marker([loc.lat, loc.lng]))
+                            );
+                            if (group.getBounds().isValid()) {
+                                mapRef.current.fitBounds(group.getBounds(), { padding: [20, 20] });
+                            }
+                        }
+                    }, 100);
                 } catch (error) {
                     console.warn('Error fitting bounds for category:', error);
-                    // Fallback to user location
-                    if (userLocation && mapRef.current) {
-                        mapRef.current.setView([userLocation.lat, userLocation.lng], 13);
-                    }
+                    // Fallback to user location with delay
+                    setTimeout(() => {
+                        if (userLocation && mapRef.current && mapRef.current._container) {
+                            try {
+                                mapRef.current.setView([userLocation.lat, userLocation.lng], 13);
+                            } catch (fallbackError) {
+                                console.warn('Fallback setView error:', fallbackError);
+                            }
+                        }
+                    }, 100);
                 }
             }
         }
@@ -1183,13 +1220,27 @@ const MapPage = () => {
     return (
         <div className="map-page-container">
             <MapContainer 
-                key={mapKey.current} // Use ref value for unique key
+                key={`map-${mapKey.current}`} // Use ref value for unique key with prefix
                 ref={mapRef}
                 center={userLocation || [11.0168, 76.9558]} 
                 zoom={14} 
                 style={{ height: '100%', width: '100%' }}
                 zoomControl={false}
                 attributionControl={false}
+                zoomAnimation={true}
+                zoomAnimationThreshold={4}
+                fadeAnimation={true}
+                markerZoomAnimation={true}
+                whenCreated={(mapInstance) => {
+                    // Ensure proper map initialization
+                    try {
+                        mapRef.current = mapInstance;
+                        console.log('🗺️ Map instance created successfully');
+                    } catch (error) {
+                        console.error('Map creation error:', error);
+                        forceMapRemount();
+                    }
+                }}
             >
                 <TileLayer 
                     url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png"
@@ -1206,7 +1257,10 @@ const MapPage = () => {
                             click: () => {
                                 setSelectedLocation(loc);
                                 if (mapRef.current) {
-                                    mapRef.current.flyTo([loc.lat, loc.lng], 14);
+                                    mapRef.current.flyTo([loc.lat, loc.lng], 14, {
+                                        animate: true,
+                                        duration: 2.5
+                                    });
                                 }
                             },
                         }}
