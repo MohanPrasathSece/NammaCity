@@ -28,7 +28,9 @@ export function AuthProvider({ children }) {
   };
 
   const updateUser = (updatedUserData) => {
-    const newUserData = { ...user, ...updatedUserData };
+    // If backend returned a full user object, prefer replacing to avoid stale nested state
+    const isFullUser = updatedUserData && (updatedUserData._id || updatedUserData.email || updatedUserData.profile);
+    const newUserData = isFullUser ? updatedUserData : { ...user, ...updatedUserData };
     setUser(newUserData);
     localStorage.setItem('ua-user', JSON.stringify(newUserData));
   };

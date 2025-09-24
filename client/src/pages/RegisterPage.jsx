@@ -49,6 +49,13 @@ export default function RegisterPage() {
 
   return (
     <main className="auth-container">
+      <button 
+        className="back-btn"
+        onClick={() => navigate('/welcome')}
+        aria-label="Go back to welcome"
+      >
+        ← Back
+      </button>
       <section className="auth-card">
         <h1 className="auth-title">Join Namma&nbsp;City</h1>
         

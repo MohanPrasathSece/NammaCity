@@ -36,6 +36,15 @@ const chatWithBot = asyncHandler(async (req, res) => {
     }
     prompt += `User: ${message}\nAssistant:`;
 
+    // Diagnostics: do not log secrets; log model and prompt meta
+    const promptPreview = prompt.slice(0, 160).replace(/\n/g, ' ');
+    console.log('[Chat] Incoming request diagnostics:', {
+      modelEnv: HF_MODEL,
+      hasKey: Boolean(HF_API_KEY && HF_API_KEY.trim()),
+      promptChars: prompt.length,
+      promptPreview: `${promptPreview}${prompt.length > 160 ? '…' : ''}`
+    });
+
     // Helper to call a specific model with small retry/backoff
     const callModel = async (modelName) => {
       const url = `https://api-inference.huggingface.co/models/${modelName}`;
@@ -43,6 +52,7 @@ const chatWithBot = asyncHandler(async (req, res) => {
       let response;
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         try {
+          console.log(`[Chat] Attempt ${attempt}/${maxAttempts} calling: ${url}`);
           response = await axios.post(
             url,
             {
@@ -69,6 +79,8 @@ const chatWithBot = asyncHandler(async (req, res) => {
           return response;
         } catch (err) {
           const status = err?.response?.status;
+          const data = err?.response?.data;
+          console.warn(`[Chat] Attempt ${attempt} failed`, { status, data: typeof data === 'string' ? data : undefined, message: err?.message });
           if (attempt < maxAttempts && (status === 429 || status === 503)) {
             const delayMs = 500 * Math.pow(2, attempt - 1);
             await new Promise((r) => setTimeout(r, delayMs));
@@ -85,16 +97,26 @@ const chatWithBot = asyncHandler(async (req, res) => {
       console.log(`[Chat] Used HF model: ${HF_MODEL}`);
     } catch (primaryErr) {
       const status = primaryErr?.response?.status;
-      // Fallback to a commonly accessible model on 404
       if (status === 404) {
-        const fallbackModel = 'google/gemma-2b-it';
-        try {
-          response = await callModel(fallbackModel);
-          console.warn(`[Chat] Primary model '${HF_MODEL}' returned 404. Fell back to '${fallbackModel}'.`);
-        } catch (fallbackErr) {
-          // Throw original 404 to preserve accurate diagnostics
-          throw primaryErr;
+        // Robust fallback sequence with lightweight public models
+        const candidates = [
+          'TinyLlama/TinyLlama-1.1B-Chat-v1.0',
+          'tiiuae/falcon-7b-instruct',
+          'HuggingFaceH4/zephyr-7b-beta'
+        ].filter((m) => m !== HF_MODEL); // avoid retrying same model
+
+        let lastErr = primaryErr;
+        for (const m of candidates) {
+          try {
+            console.warn(`[Chat] Primary model '${HF_MODEL}' returned 404. Trying fallback '${m}'...`);
+            response = await callModel(m);
+            console.warn(`[Chat] Fell back successfully to '${m}'.`);
+            break;
+          } catch (e) {
+            lastErr = e;
+          }
         }
+        if (!response) throw lastErr; // none of the fallbacks worked
       } else {
         throw primaryErr;
       }
@@ -123,7 +145,8 @@ const chatWithBot = asyncHandler(async (req, res) => {
     console.error('Error with Hugging Face API:', {
       status,
       data,
-      message: error?.message
+      message: error?.message,
+      modelTried: HF_MODEL
     });
     // Bubble up a concise message to client
     const friendly = status === 404

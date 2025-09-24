@@ -28,6 +28,13 @@ export default function LoginPage() {
 
   return (
     <main className="auth-container">
+      <button 
+        className="back-btn"
+        onClick={() => navigate('/welcome')}
+        aria-label="Go back to welcome"
+      >
+        ← Back
+      </button>
       <section className="auth-card">
         <h1 className="auth-title">Namma&nbsp;City</h1>
         

@@ -12,10 +12,10 @@ export default function ProfilePage() {
     fullName: user?.name || '',
     email: user?.email || '',
     phone: user?.phone || '',
-    bio: user?.bio || ''
+    bio: user?.profile?.bio || ''
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [profileImage, setProfileImage] = useState(user?.avatar || null);
+  const [profileImage, setProfileImage] = useState(user?.profile?.avatar || null);
 
   useEffect(() => {
     if (user) {
@@ -23,9 +23,9 @@ export default function ProfilePage() {
         fullName: user.name || '',
         email: user.email || '',
         phone: user.phone || '',
-        bio: user.bio || ''
+        bio: user.profile?.bio || ''
       });
-      setProfileImage(user.avatar);
+      setProfileImage(user.profile?.avatar || null);
     }
   }, [user]);
 
@@ -84,9 +84,12 @@ export default function ProfilePage() {
 
       // Update user profile via API
       const response = await userAPI.updateProfile(updateData);
+      // Our axios interceptor returns backend payload directly.
+      // Backend shape: { success, message, data: user }
+      const updatedUser = response?.data ? response.data : response;
       
-      // Update user context
-      updateUser(response.data || response);
+      // Update user context with the actual user object
+      updateUser(updatedUser);
       
       setIsEditing(false);
       alert('Profile updated successfully!');
@@ -103,9 +106,9 @@ export default function ProfilePage() {
       fullName: user?.name || '',
       email: user?.email || '',
       phone: user?.phone || '',
-      bio: user?.bio || ''
+      bio: user?.profile?.bio || ''
     });
-    setProfileImage(user?.avatar);
+    setProfileImage(user?.profile?.avatar || null);
     setIsEditing(false);
   };
 

@@ -34,10 +34,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
-  padding: 0.75rem;
+  position: sticky;
+  top: 0;
+  padding: 0.75rem 1rem;
   flex-shrink: 0;
   border-bottom: 1px solid var(--border);
+  background: rgba(15, 15, 15, 0.9);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  z-index: 2;
 }
 
 .page-title {
@@ -48,7 +53,7 @@
 .profile-content-wrapper {
   flex: 1;
   overflow-y: auto;
-  padding: 0.75rem;
+  padding: 1rem;
 }
 
 .profile-image-section {
@@ -62,11 +67,12 @@
 }
 
 .profile-image {
-  width: 70px;
-  height: 70px;
+  width: 84px;
+  height: 84px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid var(--primary);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.35);
 }
 
 .edit-image-btn {
@@ -97,7 +103,7 @@
 .profile-form {
   display: flex;
   flex-direction: column;
-  gap: 0rem;
+  gap: 0.5rem;
 }
 
 .form-group {
@@ -140,10 +146,15 @@
 }
 
 .profile-actions {
-  padding: 0.75rem;
+  padding: 0.75rem 1rem;
   flex-shrink: 0;
-  background: var(--background);
+  background: rgba(15,15,15,0.92);
   border-top: 1px solid var(--border);
+  position: sticky;
+  bottom: 0;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  z-index: 2;
 }
 
 .edit-actions {
@@ -157,8 +168,8 @@
   width: 100%;
   border: none;
   border-radius: 6px;
-  padding: 0.65rem;
-  font-size: 0.85rem;
+  padding: 0.85rem;
+  font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.2s ease;
@@ -212,4 +223,47 @@
 .logout-icon {
   width: 20px;
   height: 20px;
+}
+
+/* --- Mobile refinements --- */
+@media (max-width: 480px) {
+  .page-title {
+    font-size: 1.05rem;
+  }
+
+  .profile-image {
+    width: 96px;
+    height: 96px;
+    border-width: 2px;
+  }
+
+  .profile-image-section {
+    margin-bottom: 1.25rem;
+  }
+
+  .form-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.02em;
+  }
+
+  .form-input,
+  .form-textarea,
+  .form-display {
+    padding: 0.9rem;
+    font-size: 0.95rem;
+    border-radius: 10px;
+  }
+
+  .form-textarea {
+    min-height: 90px;
+  }
+
+  .edit-actions {
+    gap: 0.75rem;
+  }
+
+  .profile-actions {
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+    box-shadow: 0 -8px 24px rgba(0,0,0,0.25);
+  }
 }

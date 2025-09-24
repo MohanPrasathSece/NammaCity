@@ -1,3 +1,121 @@
+:root {
+  /* existing vars... */
+}
+
+/* --- Landing slider container (two pages side-scroll) --- */
+.landing-slider {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  width: 100%;
+  height: 100vh;
+}
+
+.landing-slider > section {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+}
+
+/* --- Intro (photo) slide --- */
+.intro-slide {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.intro-bg {
+  position: absolute;
+  inset: 0;
+  background-image: url('/images/landing-bg.jpg');
+  background-size: cover;
+  background-position: 50% 65%;
+  background-repeat: no-repeat;
+  filter: brightness(1.15) saturate(1.15);
+}
+
+.intro-overlay {
+  position: absolute;
+  inset: 0;
+  /* Darker vignette for stronger text contrast over the image */
+  background: radial-gradient(circle at 50% 35%, rgba(0,0,0,0.28), rgba(0,0,0,0.65) 55%, rgba(0,0,0,0.85) 80%);
+}
+
+.intro-content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  text-align: center;
+  padding: 2rem 1.5rem;
+}
+
+.intro-title {
+  font-size: clamp(2.4rem, 7vw, 3.6rem);
+  font-weight: 900;
+  letter-spacing: 0.4px;
+  margin-bottom: 0.5rem;
+  color: #FFFFFF;
+  line-height: 1.1;
+  text-shadow: 0 8px 28px rgba(0,0,0,0.6), 0 3px 10px rgba(0,0,0,0.4);
+}
+
+.intro-subtitle {
+  color: rgba(255,255,255,0.98);
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+  text-shadow: 0 4px 16px rgba(0,0,0,0.55);
+}
+
+.intro-hint {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  color: rgba(255,255,255,0.85);
+  font-size: 0.9rem;
+  background: rgba(0,0,0,0.35);
+  padding: 6px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+@media (max-width: 480px) {
+  .intro-title { font-size: 2.3rem; line-height: 1.08; }
+  .intro-subtitle { font-size: 1.05rem; }
+}
+
+/* --- Bottom pagination dots --- */
+.slider-dots {
+  position: fixed;
+  bottom: calc(1cm + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  z-index: 5;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.6);
+  border: 1px solid rgba(255,255,255,0.9);
+  padding: 0;
+  cursor: pointer;
+}
+
+.dot.active {
+  background: #ffffff;
+  transform: scale(1.1);
+}
+
+/* Orange accent utility */
+.brand-orange { color: #FF6700; }
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {
@@ -41,10 +159,22 @@
   bottom: 0;
   z-index: 1;
   background: radial-gradient(ellipse at center, 
-    rgba(255, 103, 0, 0.1) 0%, 
-    rgba(15, 15, 15, 0.8) 50%, 
+    rgba(255, 103, 0, 0.08) 0%, 
+    rgba(15, 15, 15, 0.6) 50%, 
     var(--background) 100%
   );
+}
+
+/* Full-bleed city photo layer */
+.hero-photo {
+  position: absolute;
+  inset: 0;
+  background-image: url('/images/landing-bg.jpg');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  z-index: 0;
+  transform: scale(1.02); /* slight scale for subtle parallax feel */
 }
 
 .city-image {
@@ -127,10 +257,10 @@
   right: 0;
   bottom: 0;
   background: linear-gradient(180deg, 
-    rgba(15, 15, 15, 0.3) 0%, 
-    rgba(15, 15, 15, 0.6) 30%, 
-    rgba(15, 15, 15, 0.8) 60%, 
-    rgba(15, 15, 15, 0.95) 100%
+    rgba(10, 10, 10, 0.35) 0%, 
+    rgba(10, 10, 10, 0.6) 30%, 
+    rgba(10, 10, 10, 0.8) 60%, 
+    rgba(10, 10, 10, 0.95) 100%
   );
 }
 
@@ -202,29 +332,37 @@
 
 /* App Branding */
 .app-branding {
-  margin-bottom: 3rem;
+  margin-bottom: 2rem;
   animation: fadeInUp 1s ease-out 0.3s both;
 }
 
-.brand-icon {
-  width: 100px;
-  height: 100px;
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-  border-radius: 50%;
-  display: flex;
+/* Brand row with logo + name */
+.brand-row {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  margin: 0 auto;
-  box-shadow: 
-    0 20px 40px rgba(255, 103, 0, 0.3),
-    0 0 0 1px rgba(255, 103, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  animation: brandPulse 4s ease-in-out infinite;
+  gap: 12px;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid var(--border);
+  padding: 10px 14px;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
 }
 
-.city-emoji {
-  font-size: 3rem;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+.logo-img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.35));
+}
+
+.brand-name {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  background: linear-gradient(135deg, var(--primary), #FFB347);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 @keyframes brandPulse {
@@ -253,7 +391,7 @@
 .hero-title {
   font-size: 2.2rem;
   font-weight: 700;
-  color: var(--text-primary);
+  color: #FFFFFF; /* White for better contrast */
   line-height: 1.2;
   margin-bottom: 1rem;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
@@ -364,6 +502,19 @@
 
 /* Responsive Design */
 @media (max-width: 480px) {
+  .brand-row {
+    gap: 10px;
+    padding: 8px 12px;
+  }
+
+  .logo-img {
+    width: 30px;
+    height: 30px;
+  }
+
+  .brand-name {
+    font-size: 1.3rem;
+  }
   .main-content {
     padding: 1.5rem 1rem;
   }
