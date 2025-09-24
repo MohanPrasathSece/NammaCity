@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
@@ -9,6 +10,11 @@ const { errorHandler } = require('./middleware/errorMiddleware');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Warn if HF key is not configured (helps diagnose 500 errors on /api/chat)
+if (!process.env.HUGGINGFACE_API_KEY) {
+  console.warn('[WARN] HUGGINGFACE_API_KEY is not set. The /api/chat endpoint will return 500 until it is configured.');
+}
 
 // Connect to DB
 connectDB();
