@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Weather from '../components/Weather'; // Import the new Weather component
+import CopilotSuggestions from '../components/CopilotSuggestions.jsx';
 import Chatbot from '../components/Chatbot'; // Import the Chatbot component
 import './HomePage.css';
 
@@ -10,6 +11,7 @@ const services = [
   { id: 'shelter', name: 'Locate Night Shelters', icon: '🏠', path: '/map?category=shelter' },
   { id: 'restZone', name: 'Rest Zones', icon: '🛋️', path: '/map?category=restZone' },
   { id: 'restroom', name: 'Public Restrooms', icon: '🚻', path: '/map?category=restroom' },
+  { id: 'report', name: 'Report Civic Issue', icon: '⚠️', path: '/report' },
 ];
 
 export default function HomePage() {
@@ -33,6 +35,7 @@ export default function HomePage() {
 
       <main className="dashboard-main">
         <Weather />
+        <CopilotSuggestions />
         <h2 className="services-title">Available Services</h2>
         <div className="services-list">
           {services.map(service => (

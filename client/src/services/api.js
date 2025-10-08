@@ -12,12 +12,31 @@ const api = axios.create({
   },
 });
 
-// Attach JWT automatically when present in localStorage
-api.interceptors.request.use((config) => {
+// Attach auth token: prefer Clerk session token, else fallback to legacy localStorage
+api.interceptors.request.use(async (config) => {
+  try {
+    // If Clerk is initialized on window, use its JWT
+    const clerk = window.Clerk;
+    if (clerk?.session) {
+      const token = await clerk.session.getToken();
+      if (token) {
+        config.headers = config.headers || {};
+        config.headers.Authorization = `Bearer ${token}`;
+        return config;
+      }
+    }
+  } catch (e) {
+    // Swallow and fallback
+  }
   const stored = localStorage.getItem('ua-user');
   if (stored) {
-    const { token } = JSON.parse(stored);
-    if (token) config.headers.Authorization = `Bearer ${token}`;
+    try {
+      const { token } = JSON.parse(stored);
+      if (token) {
+        config.headers = config.headers || {};
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch {}
   }
   return config;
 });
@@ -97,6 +116,33 @@ export const userAPI = {
   getProfile: () => api.get('/user/profile'),
   updateProfile: (data) => api.put('/user/profile', data),
   getStats: () => api.get('/user/stats'),
+};
+
+// Issues (Civic Reporting) endpoints
+export const issueAPI = {
+  getAll: (params = {}) => api.get('/issues', { params }),
+  getById: (id) => api.get(`/issues/${id}`),
+  create: (data) => api.post('/issues', data),
+  update: (id, data) => api.put(`/issues/${id}`, data),
+  delete: (id) => api.delete(`/issues/${id}`),
+};
+
+// Safety Alerts endpoints
+export const safetyAPI = {
+  getAll: (params = {}) => api.get('/safety', { params }),
+  getById: (id) => api.get(`/safety/${id}`),
+  create: (data) => api.post('/safety', data),
+  update: (id, data) => api.put(`/safety/${id}`, data),
+  delete: (id) => api.delete(`/safety/${id}`),
+};
+
+// Accessibility Reports endpoints
+export const accessibilityAPI = {
+  getAll: (params = {}) => api.get('/accessibility', { params }),
+  getById: (id) => api.get(`/accessibility/${id}`),
+  create: (data) => api.post('/accessibility', data),
+  update: (id, data) => api.put(`/accessibility/${id}`, data),
+  delete: (id) => api.delete(`/accessibility/${id}`),
 };
 
 export default api;

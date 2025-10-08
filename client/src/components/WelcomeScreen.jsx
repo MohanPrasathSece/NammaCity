@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { SignInButton, SignUpButton } from '@clerk/clerk-react';
 import './WelcomeScreen.css';
 
 export default function WelcomeScreen() {
   const navigate = useNavigate();
   const [isLoaded, setIsLoaded] = useState(false);
-  const [activeSlide, setActiveSlide] = useState(0);
-  const sliderRef = useRef(null);
 
   useEffect(() => {
     // Simulate image loading
@@ -17,31 +16,8 @@ export default function WelcomeScreen() {
     return () => clearTimeout(timer);
   }, []);
 
-  const handleGetStarted = () => {
-    navigate('/login');
-  };
-
-  const handleSignUp = () => {
-    navigate('/register');
-  };
-
-  // Handle scroll to keep dots in sync
-  useEffect(() => {
-    const el = sliderRef.current;
-    if (!el) return;
-    const onScroll = () => {
-      const index = Math.round(el.scrollLeft / el.clientWidth);
-      if (index !== activeSlide) setActiveSlide(index);
-    };
-    el.addEventListener('scroll', onScroll, { passive: true });
-    return () => el.removeEventListener('scroll', onScroll);
-  }, [activeSlide]);
-
-  const goToSlide = (index) => {
-    const el = sliderRef.current;
-    if (!el) return;
-    el.scrollTo({ left: index * el.clientWidth, behavior: 'smooth' });
-    setActiveSlide(index);
+  const handleExploreMap = () => {
+    navigate('/map');
   };
 
   return (
@@ -107,18 +83,23 @@ export default function WelcomeScreen() {
                 </p>
               </div>
 
-              {/* Get Started Button */}
-              <button className="cta-button" onClick={handleGetStarted}>
-                Get Started
-              </button>
+              {/* CTA Buttons */}
+              <div className="cta-row">
+                <SignInButton mode="modal" afterSignInUrl="/home">
+                  <button className="cta-button">Get Started</button>
+                </SignInButton>
+                <button className="cta-button cta-secondary" onClick={handleExploreMap}>
+                  Explore Map
+                </button>
+              </div>
 
               {/* Sign up option */}
               <div className="signup-option">
                 <p className="signup-text">
                   New to the city?{' '}
-                  <button className="signup-btn" onClick={handleSignUp}>
-                    Create Account
-                  </button>
+                  <SignUpButton mode="modal" afterSignUpUrl="/home">
+                    <button className="signup-btn">Create Account</button>
+                  </SignUpButton>
                 </p>
               </div>
 

@@ -57,7 +57,7 @@ export default function PWAInstall() {
       zIndex: 1000
     }}>
       <div>
-        <strong>Install Urban Aid</strong>
+        <h3>Install Namma City</h3>
         <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', opacity: 0.9 }}>
           Add to home screen for quick access
         </p>

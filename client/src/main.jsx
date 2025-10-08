@@ -3,14 +3,24 @@ import './index.css';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App.jsx';
-import { AuthProvider } from './context/AuthContext.jsx';
+import { ClerkProvider } from '@clerk/clerk-react';
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+const pk = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+const Root = (
   <React.StrictMode>
     <BrowserRouter>
-      <AuthProvider>
         <App />
-      </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>
+);
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  pk ? (
+    <ClerkProvider publishableKey={pk} afterSignOutUrl="/welcome">
+      {Root}
+    </ClerkProvider>
+  ) : (
+    Root
+  )
 );

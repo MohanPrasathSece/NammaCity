@@ -1,0 +1,7 @@
+.signUpPageContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #0F0F0F;
+}

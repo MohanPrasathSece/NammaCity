@@ -1,31 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext.jsx';
+import { useUser, useClerk } from '@clerk/clerk-react';
 import { userAPI } from '../services/api.js';
 import './ProfilePage.css';
 
 export default function ProfilePage() {
   const navigate = useNavigate();
-  const { user, logout, updateUser } = useAuth();
+  const { user } = useUser();
+  const { signOut } = useClerk();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
-    fullName: user?.name || '',
-    email: user?.email || '',
-    phone: user?.phone || '',
-    bio: user?.profile?.bio || ''
+    fullName: '',
+    email: '',
+    phone: '',
+    bio: ''
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [profileImage, setProfileImage] = useState(user?.profile?.avatar || null);
+  const [profileImage, setProfileImage] = useState(null);
 
   useEffect(() => {
     if (user) {
       setFormData({
-        fullName: user.name || '',
-        email: user.email || '',
-        phone: user.phone || '',
-        bio: user.profile?.bio || ''
+        fullName: user.fullName || '',
+        email: user.primaryEmailAddress?.emailAddress || '',
+        // Custom fields like phone and bio would typically be stored in Clerk's user metadata
+        // For now, we'll leave them blank or you can fetch them from your own backend if needed
+        phone: user.unsafeMetadata?.phone || '',
+        bio: user.unsafeMetadata?.bio || ''
       });
-      setProfileImage(user.profile?.avatar || null);
+      setProfileImage(user.imageUrl || null);
     }
   }, [user]);
 
@@ -57,7 +60,9 @@ export default function ProfilePage() {
         
         // Update with server URL
         setProfileImage(response.data.avatar);
-        updateUser({ avatar: response.data.avatar });
+        // The user object from Clerk will update automatically if the image URL changes.
+        // You may need to call user.reload() if the change isn't reflected immediately.
+        user?.reload();
         
         alert('Profile image updated successfully!');
       } catch (error) {
@@ -88,8 +93,8 @@ export default function ProfilePage() {
       // Backend shape: { success, message, data: user }
       const updatedUser = response?.data ? response.data : response;
       
-      // Update user context with the actual user object
-      updateUser(updatedUser);
+      // Reload the user object from Clerk to get the latest data
+      user?.reload();
       
       setIsEditing(false);
       alert('Profile updated successfully!');
@@ -102,13 +107,15 @@ export default function ProfilePage() {
   };
 
   const handleCancel = () => {
-    setFormData({
-      fullName: user?.name || '',
-      email: user?.email || '',
-      phone: user?.phone || '',
-      bio: user?.profile?.bio || ''
-    });
-    setProfileImage(user?.profile?.avatar || null);
+    if (user) {
+      setFormData({
+        fullName: user.fullName || '',
+        email: user.primaryEmailAddress?.emailAddress || '',
+        phone: user.unsafeMetadata?.phone || '',
+        bio: user.unsafeMetadata?.bio || ''
+      });
+      setProfileImage(user.imageUrl || null);
+    }
     setIsEditing(false);
   };
 
@@ -117,7 +124,7 @@ export default function ProfilePage() {
       {/* Header */}
       <div className="profile-header">
         <h1 className="page-title">Edit Profile</h1>
-        <button className="logout-btn" onClick={logout}>
+        <button className="logout-btn" onClick={() => signOut({ redirectUrl: '/welcome' })}>
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="logout-icon"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
         </button>
       </div>

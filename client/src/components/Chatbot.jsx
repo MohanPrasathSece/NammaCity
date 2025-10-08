@@ -45,7 +45,7 @@ const Chatbot = ({ closeChat }) => {
   return (
     <div className="chatbot-container">
       <div className="chatbot-header">
-        <h3>Urban Aid Assistant</h3>
+        <h3>Namma City Assistant</h3>
         <button onClick={closeChat} className="close-chat-btn">×</button>
       </div>
       <div className="chatbot-messages">

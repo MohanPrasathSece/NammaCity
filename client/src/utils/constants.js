@@ -1,5 +1,5 @@
 // Copied from mobile constants and adapted for web
-export const APP_NAME = 'Urban Aid';
+export const APP_NAME = 'Namma City';
 export const APP_VERSION = '1.0.0';
 
 export const COLORS = {

@@ -9,6 +9,7 @@ import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
 import 'leaflet-routing-machine';
 import './MapPage.css';
 import '../styles/Page.css';
+import { issueAPI, safetyAPI, accessibilityAPI } from '../services/api';
 
 // --- CUSTOM ICONS ---
 const createIcon = (icon, className) => L.divIcon({
@@ -29,6 +30,24 @@ const icons = {
         iconSize: [24, 24],
         iconAnchor: [12, 12],
     }),
+    // Civic issues icons (distinct emoji + class for styling if needed)
+    issue_pothole: createIcon('🕳️', 'issue-pin pothole'),
+    issue_garbage: createIcon('🗑️', 'issue-pin garbage'),
+    issue_street_light: createIcon('💡', 'issue-pin street-light'),
+    issue_water_logging: createIcon('💧', 'issue-pin water-logging'),
+    issue_other: createIcon('⚠️', 'issue-pin other'),
+    // Safety alerts icons
+    safety_dark_street: createIcon('🌃', 'safety-pin dark-street'),
+    safety_harassment_spot: createIcon('🚫', 'safety-pin harassment'),
+    safety_theft_risk: createIcon('🧰', 'safety-pin theft'),
+    safety_animal_threat: createIcon('🐕', 'safety-pin animal'),
+    safety_other: createIcon('⚠️', 'safety-pin other'),
+    // Accessibility icons
+    acc_construction: createIcon('🚧', 'acc-pin construction'),
+    acc_roadblock: createIcon('⛔', 'acc-pin roadblock'),
+    acc_elevator_outage: createIcon('🛑', 'acc-pin elevator'),
+    acc_ramp_blocked: createIcon('🛗', 'acc-pin ramp'),
+    acc_other: createIcon('♿', 'acc-pin other'),
 };
 
 // --- NAVIGATION PERSISTENCE CONSTANTS ---
@@ -56,6 +75,36 @@ const MapPage = () => {
     const [mapBearing, setMapBearing] = useState(0);
     const [isFollowingUser, setIsFollowingUser] = useState(false);
     const mapKey = useRef(Date.now()); // Use ref for unique key
+
+    // --- CIVIC ISSUES STATE ---
+    const [showIssues, setShowIssues] = useState(false);
+    const [issues, setIssues] = useState([]);
+    const [issueLoading, setIssueLoading] = useState(false);
+    const [issueError, setIssueError] = useState('');
+    const [issueFilters, setIssueFilters] = useState({
+        status: { reported: true, verified: true, resolved: false },
+        types: { pothole: true, garbage: true, 'street-light': true, 'water-logging': true, other: true },
+    });
+
+    // --- SAFETY ALERTS STATE ---
+    const [showSafety, setShowSafety] = useState(false);
+    const [safetyAlerts, setSafetyAlerts] = useState([]);
+    const [safetyLoading, setSafetyLoading] = useState(false);
+    const [safetyError, setSafetyError] = useState('');
+    const [safetyFilters, setSafetyFilters] = useState({
+        status: { active: true, resolved: false },
+        types: { dark_street: true, harassment_spot: true, theft_risk: true, animal_threat: true, other: true },
+    });
+
+    // --- ACCESSIBILITY STATE ---
+    const [showAccessibility, setShowAccessibility] = useState(false);
+    const [accReports, setAccReports] = useState([]);
+    const [accLoading, setAccLoading] = useState(false);
+    const [accError, setAccError] = useState('');
+    const [accFilters, setAccFilters] = useState({
+        status: { active: true, resolved: false },
+        types: { construction: true, roadblock: true, elevator_outage: true, ramp_blocked: true, other: true },
+    });
 
     // Force map remount when container errors occur
     const forceMapRemount = () => {
@@ -120,6 +169,63 @@ const MapPage = () => {
             setUserLocation(fallbackLocation);
         }
     }, []);
+
+    // --- FETCH ISSUES WHEN TOGGLED ON ---
+    useEffect(() => {
+        const fetchIssues = async () => {
+            if (!showIssues) return;
+            try {
+                setIssueLoading(true);
+                setIssueError('');
+                const res = await issueAPI.getAll({ limit: 200, sort: '-createdAt' });
+                const list = res?.data || [];
+                setIssues(Array.isArray(list) ? list : []);
+            } catch (e) {
+                setIssueError(e.message || 'Failed to load issues');
+            } finally {
+                setIssueLoading(false);
+            }
+        };
+        fetchIssues();
+    }, [showIssues]);
+
+    // --- FETCH SAFETY WHEN TOGGLED ON ---
+    useEffect(() => {
+        const fetchSafety = async () => {
+            if (!showSafety) return;
+            try {
+                setSafetyLoading(true);
+                setSafetyError('');
+                const res = await safetyAPI.getAll({ limit: 200, sort: '-createdAt' });
+                const list = res?.data || [];
+                setSafetyAlerts(Array.isArray(list) ? list : []);
+            } catch (e) {
+                setSafetyError(e.message || 'Failed to load safety alerts');
+            } finally {
+                setSafetyLoading(false);
+            }
+        };
+        fetchSafety();
+    }, [showSafety]);
+
+    // --- FETCH ACCESSIBILITY WHEN TOGGLED ON ---
+    useEffect(() => {
+        const fetchAcc = async () => {
+            if (!showAccessibility) return;
+            try {
+                setAccLoading(true);
+                setAccError('');
+                const res = await accessibilityAPI.getAll({ limit: 200, sort: '-createdAt' });
+                const list = res?.data || [];
+                setAccReports(Array.isArray(list) ? list : []);
+            } catch (e) {
+                setAccError(e.message || 'Failed to load accessibility reports');
+            } finally {
+                setAccLoading(false);
+            }
+        };
+        fetchAcc();
+    }, [showAccessibility]);
 
     // --- LOCATION PERSISTENCE FUNCTIONS ---
     const saveLastLocation = (location) => {
@@ -1267,6 +1373,144 @@ const MapPage = () => {
                     />
                 ))}
 
+                {/* Civic Issues markers (clustered) */}
+                {showIssues && clusteredIssues.map((group, idx) => {
+                    if (group.length === 1) {
+                        const issue = group[0];
+                        const [lng, lat] = issue.location.coordinates;
+                        const iconKey =
+                            issue.issueType === 'pothole' ? 'issue_pothole' :
+                            issue.issueType === 'garbage' ? 'issue_garbage' :
+                            issue.issueType === 'street-light' ? 'issue_street_light' :
+                            issue.issueType === 'water-logging' ? 'issue_water_logging' :
+                            'issue_other';
+                        return (
+                            <Marker key={`iss-${issue._id}`} position={[lat, lng]} icon={icons[iconKey]}>
+                                <Popup>
+                                    <div style={{ maxWidth: 220 }}>
+                                        <div style={{ fontWeight: 700, marginBottom: 6, textTransform: 'capitalize' }}>{issue.issueType?.replace('-', ' ')}</div>
+                                        {issue.photoUrl && (
+                                            <img src={issue.photoUrl} alt={issue.issueType} style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 8, marginBottom: 8 }} />
+                                        )}
+                                        <div style={{ fontSize: 13, color: '#222', marginBottom: 6 }}>{issue.description}</div>
+                                        <div style={{ fontSize: 12, color: '#555', marginBottom: 8 }}>Status: {issue.status || 'reported'}</div>
+                                        <button onClick={() => window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank')} style={{
+                                            background: '#FF6700', color: '#fff', border: 'none', padding: '6px 10px', borderRadius: 6, cursor: 'pointer'
+                                        }}>Open in Maps</button>
+                                    </div>
+                                </Popup>
+                            </Marker>
+                        );
+                    }
+                    // Cluster marker
+                    const centroid = group.reduce((acc, it) => {
+                        const [lng, lat] = it.location.coordinates;
+                        return { lat: acc.lat + lat, lng: acc.lng + lng };
+                    }, { lat: 0, lng: 0 });
+                    centroid.lat /= group.length; centroid.lng /= group.length;
+                    const clusterIcon = L.divIcon({
+                        html: `<div class="cluster-pin">${group.length}</div>`,
+                        className: '',
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 16]
+                    });
+                    return (
+                        <Marker key={`issc-${idx}`} position={[centroid.lat, centroid.lng]} icon={clusterIcon}
+                            eventHandlers={{
+                                click: () => {
+                                    // Zoom in slightly on cluster click
+                                    if (mapRef.current) {
+                                        mapRef.current.flyTo([centroid.lat, centroid.lng], Math.min((mapRef.current.getZoom?.() || 14) + 2, 18), {
+                                            animate: true,
+                                            duration: 0.8
+                                        });
+                                    }
+                                }
+                            }}
+                        />
+                    );
+                })}
+
+                {/* Safety markers (clustered) */}
+                {showSafety && clusteredSafety.map((group, idx) => {
+                    if (group.length === 1) {
+                        const a = group[0];
+                        const [lng, lat] = a.location.coordinates;
+                        const iconKey =
+                            a.alertType === 'dark_street' ? 'safety_dark_street' :
+                            a.alertType === 'harassment_spot' ? 'safety_harassment_spot' :
+                            a.alertType === 'theft_risk' ? 'safety_theft_risk' :
+                            a.alertType === 'animal_threat' ? 'safety_animal_threat' :
+                            'safety_other';
+                        return (
+                            <Marker key={`safe-${a._id}`} position={[lat, lng]} icon={icons[iconKey]}>
+                                <Popup>
+                                    <div style={{ maxWidth: 220 }}>
+                                        <div style={{ fontWeight: 700, marginBottom: 6, textTransform: 'capitalize' }}>{(a.alertType||'other').replace('_',' ')}</div>
+                                        <div style={{ fontSize: 13, color: '#222', marginBottom: 6 }}>{a.description}</div>
+                                        <div style={{ fontSize: 12, color: '#555', marginBottom: 8 }}>Severity: {a.severity || 'medium'} · Status: {a.status || 'active'}</div>
+                                        <button onClick={() => window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank')} style={{
+                                            background: '#FF6700', color: '#fff', border: 'none', padding: '6px 10px', borderRadius: 6, cursor: 'pointer'
+                                        }}>Open in Maps</button>
+                                    </div>
+                                </Popup>
+                            </Marker>
+                        );
+                    }
+                    const centroid = group.reduce((acc, it) => {
+                        const [lng, lat] = it.location.coordinates; return { lat: acc.lat + lat, lng: acc.lng + lng };
+                    }, { lat: 0, lng: 0 });
+                    centroid.lat /= group.length; centroid.lng /= group.length;
+                    const clusterIcon = L.divIcon({
+                        html: `<div class="cluster-pin">${group.length}</div>`, className: '', iconSize: [32,32], iconAnchor: [16,16]
+                    });
+                    return (
+                        <Marker key={`safec-${idx}`} position={[centroid.lat, centroid.lng]} icon={clusterIcon}
+                            eventHandlers={{ click: () => mapRef.current && mapRef.current.flyTo([centroid.lat, centroid.lng], Math.min((mapRef.current.getZoom?.()||14)+2,18), { animate:true, duration:0.8 }) }}
+                        />
+                    );
+                })}
+
+                {/* Accessibility markers (clustered) */}
+                {showAccessibility && clusteredAcc.map((group, idx) => {
+                    if (group.length === 1) {
+                        const r = group[0];
+                        const [lng, lat] = r.location.coordinates;
+                        const iconKey =
+                            r.issueType === 'construction' ? 'acc_construction' :
+                            r.issueType === 'roadblock' ? 'acc_roadblock' :
+                            r.issueType === 'elevator_outage' ? 'acc_elevator_outage' :
+                            r.issueType === 'ramp_blocked' ? 'acc_ramp_blocked' :
+                            'acc_other';
+                        return (
+                            <Marker key={`acc-${r._id}`} position={[lat, lng]} icon={icons[iconKey]}>
+                                <Popup>
+                                    <div style={{ maxWidth: 220 }}>
+                                        <div style={{ fontWeight: 700, marginBottom: 6, textTransform: 'capitalize' }}>{(r.issueType||'other').replace('_',' ')}</div>
+                                        <div style={{ fontSize: 13, color: '#222', marginBottom: 6 }}>{r.description}</div>
+                                        <div style={{ fontSize: 12, color: '#555', marginBottom: 8 }}>Status: {r.status || 'active'}</div>
+                                        <button onClick={() => window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank')} style={{
+                                            background: '#FF6700', color: '#fff', border: 'none', padding: '6px 10px', borderRadius: 6, cursor: 'pointer'
+                                        }}>Open in Maps</button>
+                                    </div>
+                                </Popup>
+                            </Marker>
+                        );
+                    }
+                    const centroid = group.reduce((acc, it) => {
+                        const [lng, lat] = it.location.coordinates; return { lat: acc.lat + lat, lng: acc.lng + lng };
+                    }, { lat: 0, lng: 0 });
+                    centroid.lat /= group.length; centroid.lng /= group.length;
+                    const clusterIcon = L.divIcon({
+                        html: `<div class="cluster-pin">${group.length}</div>`, className: '', iconSize: [32,32], iconAnchor: [16,16]
+                    });
+                    return (
+                        <Marker key={`accc-${idx}`} position={[centroid.lat, centroid.lng]} icon={clusterIcon}
+                            eventHandlers={{ click: () => mapRef.current && mapRef.current.flyTo([centroid.lat, centroid.lng], Math.min((mapRef.current.getZoom?.()||14)+2,18), { animate:true, duration:0.8 }) }}
+                        />
+                    );
+                })}
+
                 {isNavigating && destination && (
                     <RoutingMachine ref={routingMachineRef} setInstructions={setRouteInfo} />
                 )}
@@ -1282,6 +1526,126 @@ const MapPage = () => {
                     <button onClick={() => handleCategoryClick('shelter')} className={activeCategory === 'shelter' ? 'active' : ''}>🛌 Stays</button>
                     <button onClick={() => handleCategoryClick('restZone')} className={activeCategory === 'restZone' ? 'active' : ''}>🛋️ Zones</button>
                     <button onClick={() => handleCategoryClick('restroom')} className={activeCategory === 'restroom' ? 'active' : ''}>🚻 Restrooms</button>
+                    {/* Issues toggle */}
+                    <button
+                        onClick={() => setShowIssues((v) => !v)}
+                        className={showIssues ? 'active' : ''}
+                        title="Toggle civic issues layer"
+                    >⚠️ Issues</button>
+                    {/* Safety toggle */}
+                    <button
+                        onClick={() => setShowSafety((v) => !v)}
+                        className={showSafety ? 'active' : ''}
+                        title="Toggle safety alerts layer"
+                    >🛡️ Safety</button>
+                    {/* Accessibility toggle */}
+                    <button
+                        onClick={() => setShowAccessibility((v) => !v)}
+                        className={showAccessibility ? 'active' : ''}
+                        title="Toggle accessibility layer"
+                    >♿ Access</button>
+                </div>
+            )}
+
+            {/* Issues Filters Panel */}
+            {showIssues && !isNavigating && (
+                <div style={{
+                    position: 'fixed',
+                    top: 70,
+                    left: 10,
+                    right: 10,
+                    background: 'rgba(26,26,26,0.95)',
+                    color: '#fff',
+                    borderRadius: 12,
+                    padding: 10,
+                    zIndex: 1001,
+                    border: '1px solid #333'
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <div style={{ fontWeight: 600 }}>Civic Issues</div>
+                        {issueLoading && <div style={{ fontSize: 12, color: '#aaa' }}>Loading…</div>}
+                    </div>
+                    {issueError && <div style={{ background: '#3b1f1f', color: '#ffb0b0', padding: 8, borderRadius: 8, marginBottom: 8 }}>{issueError}</div>}
+                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 8 }}>
+                        {/* Status filters */}
+                        {['reported','verified','resolved'].map((st) => (
+                            <label key={st} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+                                <input
+                                    type="checkbox"
+                                    checked={!!issueFilters.status[st]}
+                                    onChange={(e) => setIssueFilters((f) => ({ ...f, status: { ...f.status, [st]: e.target.checked } }))}
+                                /> {st}
+                            </label>
+                        ))}
+                    </div>
+                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                        {/* Type filters */}
+                        {[{k:'pothole',l:'Pothole'},{k:'garbage',l:'Garbage'},{k:'street-light',l:'Street light'},{k:'water-logging',l:'Water logging'},{k:'other',l:'Other'}].map(t => (
+                            <label key={t.k} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+                                <input
+                                    type="checkbox"
+                                    checked={!!issueFilters.types[t.k]}
+                                    onChange={(e) => setIssueFilters((f) => ({ ...f, types: { ...f.types, [t.k]: e.target.checked } }))}
+                                /> {t.l}
+                            </label>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Safety Filters Panel */}
+            {showSafety && !isNavigating && (
+                <div style={{
+                    position: 'fixed', top: 70, left: 10, right: 10,
+                    background: 'rgba(26,26,26,0.95)', color: '#fff', borderRadius: 12, padding: 10, zIndex: 1001, border: '1px solid #333'
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <div style={{ fontWeight: 600 }}>Safety Alerts</div>
+                        {safetyLoading && <div style={{ fontSize: 12, color: '#aaa' }}>Loading…</div>}
+                    </div>
+                    {safetyError && <div style={{ background: '#3b1f1f', color: '#ffb0b0', padding: 8, borderRadius: 8, marginBottom: 8 }}>{safetyError}</div>}
+                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 8 }}>
+                        {['active','resolved'].map((st)=>(
+                            <label key={st} style={{ display:'flex', alignItems:'center', gap:6, fontSize:13 }}>
+                                <input type="checkbox" checked={!!safetyFilters.status[st]} onChange={(e)=> setSafetyFilters(f=> ({...f, status:{...f.status,[st]: e.target.checked}}))} /> {st}
+                            </label>
+                        ))}
+                    </div>
+                    <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
+                        {[{k:'dark_street',l:'Dark street'},{k:'harassment_spot',l:'Harassment'},{k:'theft_risk',l:'Theft risk'},{k:'animal_threat',l:'Animal threat'},{k:'other',l:'Other'}].map(t=> (
+                            <label key={t.k} style={{ display:'flex', alignItems:'center', gap:6, fontSize:13 }}>
+                                <input type="checkbox" checked={!!safetyFilters.types[t.k]} onChange={(e)=> setSafetyFilters(f=> ({...f, types:{...f.types,[t.k]: e.target.checked}}))} /> {t.l}
+                            </label>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Accessibility Filters Panel */}
+            {showAccessibility && !isNavigating && (
+                <div style={{
+                    position: 'fixed', top: 70, left: 10, right: 10,
+                    background: 'rgba(26,26,26,0.95)', color: '#fff', borderRadius: 12, padding: 10, zIndex: 1001, border: '1px solid #333'
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <div style={{ fontWeight: 600 }}>Accessibility</div>
+                        {accLoading && <div style={{ fontSize: 12, color: '#aaa' }}>Loading…</div>}
+                    </div>
+                    {accError && <div style={{ background: '#3b1f1f', color: '#ffb0b0', padding: 8, borderRadius: 8, marginBottom: 8 }}>{accError}</div>}
+                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 8 }}>
+                        {['active','resolved'].map((st)=>(
+                            <label key={st} style={{ display:'flex', alignItems:'center', gap:6, fontSize:13 }}>
+                                <input type="checkbox" checked={!!accFilters.status[st]} onChange={(e)=> setAccFilters(f=> ({...f, status:{...f.status,[st]: e.target.checked}}))} /> {st}
+                            </label>
+                        ))}
+                    </div>
+                    <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
+                        {[{k:'construction',l:'Construction'},{k:'roadblock',l:'Roadblock'},{k:'elevator_outage',l:'Elevator outage'},{k:'ramp_blocked',l:'Ramp blocked'},{k:'other',l:'Other'}].map(t=> (
+                            <label key={t.k} style={{ display:'flex', alignItems:'center', gap:6, fontSize:13 }}>
+                                <input type="checkbox" checked={!!accFilters.types[t.k]} onChange={(e)=> setAccFilters(f=> ({...f, types:{...f.types,[t.k]: e.target.checked}}))} /> {t.l}
+                            </label>
+                        ))}
+                    </div>
                 </div>
             )}
 

@@ -8,7 +8,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'Urban Aid',
+        name: 'Namma City',
         short_name: 'UrbanAid',
         description: 'Urban services PWA with map, journal, chat & bookmarks',
         theme_color: '#FF6700',

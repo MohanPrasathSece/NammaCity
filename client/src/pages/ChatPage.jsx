@@ -1,10 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
 import { chatAPI } from '../services/api.js';
+import { LANGUAGE_OPTIONS, isSTTSupported, isTTSSupported, startRecognition, speak } from '../utils/voice';
 import './ChatPage.css';
 
 export default function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
+  const [lang, setLang] = useState('en-IN');
+  const [listening, setListening] = useState(false);
   const bottomRef = useRef();
 
   useEffect(() => {
@@ -18,16 +21,47 @@ export default function ChatPage() {
     setInput('');
     try {
       const res = await chatAPI.sendMessage?.(input) || { data: { reply: 'This is a mock reply 👍' } };
-      const aiMsg = { sender: 'ai', text: res.data?.reply || res.reply || res };
+      const aiText = res.data?.reply || res.reply || (typeof res === 'string' ? res : '');
+      const aiMsg = { sender: 'ai', text: aiText };
       setMessages((prev) => [...prev, aiMsg]);
+
+      // TTS speak back if supported
+      if (isTTSSupported() && aiText) {
+        speak(aiText, { lang });
+      }
     } catch (err) {
       setMessages((prev) => [...prev, { sender: 'ai', text: err.message }]);
     }
   };
 
+  const handleVoiceInput = async () => {
+    if (!isSTTSupported()) return alert('Speech-to-text not supported in this browser');
+    try {
+      setListening(true);
+      const transcript = await startRecognition({ lang, interimResults: false });
+      setInput(transcript);
+    } catch (e) {
+      console.warn('STT error:', e.message);
+    } finally {
+      setListening(false);
+    }
+  };
+
   return (
     <div className="chat-page">
-      <div className="chat-header">AI Assistant</div>
+      <div className="chat-header">
+        <span>AI Assistant</span>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+          <select value={lang} onChange={(e) => setLang(e.target.value)} className="lang-select">
+            {LANGUAGE_OPTIONS.map((o) => (
+              <option key={o.code} value={o.code}>{o.label}</option>
+            ))}
+          </select>
+          <button onClick={handleVoiceInput} className={`mic-btn ${listening ? 'active' : ''}`} title="Hold to speak">
+            🎤
+          </button>
+        </div>
+      </div>
       <div className="chat-body">
         {messages.map((m, idx) => (
           <div key={idx} className={`msg ${m.sender}`}>{m.text}</div>

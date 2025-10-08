@@ -3,11 +3,13 @@ const router = express.Router();
 const { chatWithBot } = require('../controllers/chatController');
 const { protect } = require('../middleware/authMiddleware');
 
-// Public health endpoint to verify env configuration
+// Public health endpoint to verify chat service
 router.get('/health', (req, res) => {
-  const model = process.env.HF_MODEL || 'tiiuae/falcon-7b-instruct';
-  const hasKey = Boolean(process.env.HUGGINGFACE_API_KEY && process.env.HUGGINGFACE_API_KEY.trim());
-  res.json({ model, hasKey });
+  res.json({ 
+    status: 'active',
+    service: 'Free Namma City Assistant',
+    features: ['Coimbatore local info', 'Service recommendations', 'Emergency contacts']
+  });
 });
 
 // Protected chat endpoint
